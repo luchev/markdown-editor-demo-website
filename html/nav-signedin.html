@@ -1,5 +1,5 @@
-<div>
-    <a href="/p/user">
+<div class="nav-link">
+    <div id="nav-user">
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
             stroke-linecap="round" stroke-linejoin="round">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
@@ -9,10 +9,18 @@
             stroke-linecap="round" stroke-linejoin="round">
             <polyline points="6 9 12 15 18 9" />
         </svg>
-    </a>
-    <ul class="drop">
-        <li><a href="/p/profile">Profile</a></li>
-        <li><a href="/p/editor">Editor</a></li>
-        <li><a href="/p/signout">Sign out</a></li>
-    </ul>
+    </div>
+    <div id="nav-user-drop-down" style="display:none;">
+        <div class="drop-down-item">
+            <a href="/p/profile">Profile</a>
+        </div>
+        <div class="drop-down-item">
+            <a href="/p/editor">Editor</a>
+        </div>
+        <div class="drop-down-item">
+            <a href="/p/signout">Sign out</a>
+        </div>
+    </div>
 </div>
+
+<script src="/js/nav-user-drop-down.js"></script>
