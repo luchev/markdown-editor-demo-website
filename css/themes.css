@@ -11,8 +11,8 @@
 	--link-inactive: #4f545c;
 	--bg-primary: #36393f;
 	--bg-secondary: #2f3136;
-	--bg-secondary-alt: #292b2f;
 	--bg-tertiary: #202225;
+	--bg-quaternary: #292b2f;
 	--bg-accent: #4f545c;
 	--bg-floating: #18191c;
 	--bg-mod-hover: rgba(79, 84, 92, 0.16);
@@ -48,7 +48,7 @@
 	--link-inactive: #4f545c;
 	--bg-primary: #36393f;
 	--bg-secondary: #2f3136;
-	--bg-secondary-alt: #292b2f;
+	--bg-quaternary: #292b2f;
 	--bg-tertiary: #202225;
 	--bg-accent: #4f545c;
 	--bg-floating: #18191c;
@@ -83,7 +83,7 @@
 	--link-inactive: #c7ccd1;
 	--bg-primary: #fff;
 	--bg-secondary: #f2f3f5;
-	--bg-secondary-alt: #ebedef;
+	--bg-quaternary: #ebedef;
 	--bg-tertiary: #e3e5e8;
 	--bg-accent: #747f8d;
 	--bg-floating: #fff;

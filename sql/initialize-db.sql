@@ -13,12 +13,11 @@ CREATE EXTENSION citext;
 CREATE TABLE users(
     id SERIAL PRIMARY KEY,
     email citext UNIQUE,
-    pass VARCHAR(255),
-    display_name VARCHAR(40),
-    CONSTRAINT id PRIMARY KEY  
+    password VARCHAR(255),
+    nickname VARCHAR(40) UNIQUE,
 );
 
-CREATE TABLE loggedin(
+CREATE TABLE signedin(
     user_id int PRIMARY KEY,
     token VARCHAR(255) UNIQUE,
     created TIMESTAMP,

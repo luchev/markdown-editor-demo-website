@@ -98,14 +98,19 @@ class DB {
 			 */
 		} else {
 			$result = pg_fetch_object($result);
-			$id = $result->id;
 			$passwordHash = $result->password;
+			
+			$id = $result->id;
+			$nickname = $result->nickname;
+			if ($nickname == "") {
+				$nickname = "Me";
+			}
 
 			if (password_verify($password, $passwordHash)) {
 				session_start();
-				$_SESSION['loggedin'] = true;
+				$_SESSION['signedin'] = true;
 				$_SESSION['id'] = $id;
-				$_SESSION['email'] = $email;
+				$_SESSION['nickname'] = $nickname;
 				/**
 				 * TODO add token
 				 * TODO add check for remember me

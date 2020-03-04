@@ -5,14 +5,48 @@
     padding: 0;
 }
 
-body {
+html, body {
     background: var(--bg-primary);
     color: var(--text-normal);
     font: var(--font-normal); 
     line-height: normal;
+    display: flex;
+    flex-flow: column;
+    height: 100%;
 }
 
-svg {
+
+::-webkit-scrollbar-track {
+    box-shadow: inset 0 0 6px var(--bg-tertiary);
+	border-radius: 10px;
+	background: var(--bg-primary);
+}
+
+::-webkit-scrollbar {
+	width: 12px;
+}
+
+::-webkit-scrollbar-thumb {
+	border-radius: 10px;
+	box-shadow: inset 0 0 6px var(--bg-tertiary);
+	background: var(--bg-accent);
+}
+
+
+nav {
+    flex-grow: 0;
+    height: 3em;
+    background-color: var(--bg-quaternary);
+    box-shadow: 0 0px 8px 0px rgba(0, 0, 0, 0.1), 0 -5px 2px 2px rgba(0, 0, 0, 0.1);
+}
+
+main {
+    min-height: calc(100% - 3em);
+    max-height: calc(100% - 3em);
+    width: 100%;
+}
+
+.block {
     display: block;
 }
 
@@ -30,14 +64,6 @@ a:active {
     color: var(--link-active);
 }
 
-nav {
-    width: 100%;
-    height: 3em;
-    margin: 0;
-    background-color: var(--bg-tertiary);
-    box-shadow: 0 0px 8px 0px rgba(0, 0, 0, 0.1), 0 -5px 2px 2px rgba(0, 0, 0, 0.1);
-}
-
 #logo {
     position: relative;
     top: 50%;
@@ -47,20 +73,29 @@ nav {
     min-width: 3.4em;
 }
 
-
-#logo:hover {
-    color: var(--header-primary);
-}
-
 #logo svg path {
     fill: var(--header-secondary);
 }
 
-#logo:hover svg path {
+#logo:hover svg > * {
     fill: var(--header-primary);
 }
 
+#links svg {
+    margin: 0;
+}
+
+#links svg > * {
+    stroke: var(--header-secondary);
+}
+
+#links:hover svg > * {
+    stroke: var(--header-primary);
+    stroke-width: 2.5;
+}
+
 #links {
+    margin-right: 5px;
     height: 100%;
     float: right;
     position: relative;
@@ -69,7 +104,7 @@ nav {
 #links > div {
     position: relative;
     float: left;
-    margin-right: 20px;
+    margin-right: 15px;
     top: 50%;
     transform: translateY(-50%);
 }
@@ -91,18 +126,19 @@ nav {
     background: var(--bg-secondary);
     list-style: none;
     border-radius: 4px;
-    box-shadow: 0 0 5px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.4);
     display: none;
 }
 
 #links div:hover > .drop {
     display: block;
-    animation: fadeInRight .3s ease;
 }
 
 #links div ul > li {
-    clear: both;
+    border-radius: 3px;;
     display: block;
+    white-space: nowrap;
+    padding: 0 10px;
 }
 
 #links div ul > li:hover {
@@ -111,6 +147,24 @@ nav {
 
 #links div ul > li > a {
     display: block;
-    padding: 0 10px;
+    padding: 3px 7px;
     width: 100%;
+}
+
+#editor {
+    cursor: default;
+    overflow: auto;
+    left: 50%;
+    margin: auto;
+    margin-top: 10px;
+    padding: 20px 30px 60px 30px;
+    box-sizing: border-box;
+    border-radius: 5px;
+    max-width: 826px;
+    min-height: calc(100% - 20px);
+    max-height: calc(100% - 20px);
+    background: var(--bg-tertiary);
+    color: var(--text-normal);
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+    outline: none;
 }

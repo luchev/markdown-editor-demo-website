@@ -24,3 +24,13 @@ function set_previous_page() {
         $_SESSION['previous_page'] = '/p/home';
     }
 }
+
+function starts_with(string $haystack, string $needle) {
+    $needleLength = strlen($needle);
+    return (substr($haystack, 0, $needleLength) === $needle);
+}
+
+function ends_with(string $haystack, string $needle) {
+    $needleLength = strlen($needle);
+    return (substr($haystack, -$needleLength) === $needle);
+}

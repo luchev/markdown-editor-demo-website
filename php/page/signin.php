@@ -1,7 +1,7 @@
 <?php
 
 // If a user is already logged in, redirect
-if (isset($_SESSION['loggedin'])) {
+if (isset($_SESSION['signedin'])) {
     header('location: /p/home');
 }
 

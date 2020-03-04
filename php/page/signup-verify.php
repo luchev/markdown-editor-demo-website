@@ -12,6 +12,10 @@ if (!isset($_POST['email']) || !isset($_POST['password'])) {
     redirect_back();
 }
 
+/**
+ * TODO add password validation
+ */
+
 // Connect to the database and add new user
 require 'php/lib/db.php';
 $db = DB::instance();
