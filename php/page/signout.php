@@ -1,6 +1,5 @@
 <?php
+require_once 'php/lib/utils.php';
 
 session_destroy();
-
-require 'php/lib/utils.php';
 redirect_back();

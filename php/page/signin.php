@@ -1,10 +1,10 @@
 <?php
+require_once 'php/lib/utils.php';
 
 // If a user is already logged in, redirect
 if (isset($_SESSION['signedin'])) {
-    header('location: /p/home');
+    redirect_back();
 }
 
 include 'html/signin-form.html';
-include 'php/lib/utils.php';
 set_previous_page();
