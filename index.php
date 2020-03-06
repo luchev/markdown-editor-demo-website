@@ -2,15 +2,17 @@
 
 session_start();
 
+require_once 'php/lib/utils.php';
+
 include 'php/lib/header.php';
 include 'php/lib/nav.php';
 
 if (isset($_GET['p'])) {
-    if (file_exists('php/page/' . $_GET['p'] . '.php')) {
-        $page = $_GET['p'];
+    $page = explode("/", $_GET['p'])[0];
+    if (file_exists('php/page/' . $page . '.php')) {
         include "php/page/$page.php";
     } else {
-        include 'php/page/404.php';
+        error(404, "Cannot find " . $page . " on this website :(");
     }
 } else {
     include 'php/page/home.php';
