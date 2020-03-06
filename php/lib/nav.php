@@ -8,12 +8,12 @@
         </a>
     </div>
     <div id="nav-links" class="nav-section">
-        <?php
-            if ($_SESSION['signedin'] == true) {
-                include 'html/nav-signedin.html';
-            } else {
-                include 'html/nav-signedout.html';
-            }
-        ?>
+<?php
+    if (isset($_SESSION['signedin']) && $_SESSION['signedin'] == true) {
+        include 'html/nav-signedin.html';
+    } else {
+        include 'html/nav-signedout.html';
+    }
+?>
     </div>
 </nav>
