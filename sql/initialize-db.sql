@@ -17,7 +17,7 @@ CREATE TABLE users(
     nickname VARCHAR(40) UNIQUE,
 );
 
-CREATE TABLE signedin(
+CREATE TABLE loggedin(
     user_id int PRIMARY KEY,
     token VARCHAR(255) UNIQUE,
     created TIMESTAMP,

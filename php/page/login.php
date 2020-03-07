@@ -2,7 +2,7 @@
 require_once 'php/lib/utils.php';
 
 // If a user is already logged in, redirect
-if (isset($_SESSION['signedin'])) {
+if (isset($_SESSION['loggedin'])) {
     redirect_back();
 }
 

@@ -108,7 +108,7 @@ class DB {
 
 			if (password_verify($password, $passwordHash)) {
 				session_start();
-				$_SESSION['signedin'] = true;
+				$_SESSION['loggedin'] = true;
 				$_SESSION['id'] = $id;
 				$_SESSION['nickname'] = $nickname;
 				/**

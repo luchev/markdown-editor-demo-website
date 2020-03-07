@@ -9,10 +9,10 @@
     </div>
     <div id="nav-links" class="nav-section">
 <?php
-    if (isset($_SESSION['signedin']) && $_SESSION['signedin'] == true) {
-        include 'html/nav-signedin.html';
+    if (isset($_SESSION['loggedin']) && $_SESSION['loggedin'] == true) {
+        include 'html/nav-loggedin.html';
     } else {
-        include 'html/nav-signedout.html';
+        include 'html/nav-loggedout.html';
     }
 ?>
     </div>

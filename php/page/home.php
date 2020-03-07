@@ -2,5 +2,5 @@
 
 include 'html/home.html';
 
-if (isset($_SESSION['signedin'])) {
+if (isset($_SESSION['loggedin'])) {
 }
