@@ -47,7 +47,7 @@ passwordConfirm.addEventListener('input', function (event) {
 /**
  * The signup form dom object
  */
-let form = document.getElementById('signup_form');
+let form = document.getElementById('signup-form');
 
 /**
  * Before submitting the form validate the password and confirm password fields
