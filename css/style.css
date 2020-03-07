@@ -166,3 +166,77 @@ main {
 .drop-down-item:hover {
     background: var(--bg-accent);
 }
+
+.tab-container {
+    display: flex;
+    flex-direction: column;
+    width: 400px;
+    border-radius: 5px;
+}
+
+.tab-link-list {
+    display: flex;
+    flex-direction: row;
+    font-size: 19px;
+}
+
+.tab-panels {
+    display: flex;
+    background: var(--bg-quaternary);
+    padding: 30px 20px 20px 20px;
+    border-radius: 0 0 5px 5px;
+}
+
+.tab-link {
+    display: flex;
+    flex: 1;
+    justify-content: center;
+    padding: 10px;
+    cursor: pointer;
+    border-radius: 5px 5px 0px 0px;
+}
+
+.tab-panel {
+    display: none;
+}
+
+.tab-link-active {
+    background: var(--bg-quaternary);
+}
+
+
+.tab-panel-active {
+    display: flex;
+    flex: 1;
+}
+
+.form {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+}
+
+.form input {
+    background: var(--bg-primary);
+    color: var(--text-normal);
+    border: none;
+    margin: 0 0 15px 0;
+    padding: 15px;
+    font-size: 15px;
+    border-radius: 4px;
+}
+
+.form input::placeholder {
+    color: var(--text-inactive);
+}
+
+.form input[type='submit'] {
+    cursor: pointer;
+    background: var(--bg-tertiary);
+    margin-bottom: 0;
+    font: var(--font-text);
+}
+
+.form input[type='submit']:hover {
+    background: var(--bg-accent);
+}
