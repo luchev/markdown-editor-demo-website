@@ -1,7 +1,7 @@
 /**
  * Before submitting the form set the form action attribute dynamically
  */
-let form = document.getElementById('signin-form');
+let form = document.getElementById('login-form');
 form.addEventListener('submit', function (event) {
-    form.setAttribute('action', '/p/signin-verify');
+    form.setAttribute('action', '/p/login-verify');
 });

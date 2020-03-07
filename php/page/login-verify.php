@@ -16,7 +16,7 @@ require_once 'php/lib/db.php';
 $db = DB::instance();
 $email = $_POST['email'];
 $password = $_POST['password'];
-$db->signin($email, $password);
+$db->login($email, $password);
 
 // Redirect after adding new user   
 redirect_back();

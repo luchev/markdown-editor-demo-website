@@ -89,7 +89,7 @@ class DB {
 	/**
 	 * Sign in a user given an email and password
 	 */
-	public function signin(string $email, string $password) {
+	public function login(string $email, string $password) {
 		$result = pg_query_params('SELECT id, password FROM users WHERE email = $1 LIMIT 1', array($email));
 		if (!$result) {
 			die("Failed to select user with such email: " . pg_last_error());
