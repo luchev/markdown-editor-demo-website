@@ -1,0 +1,34 @@
+:root {
+    --header-primary: #060607;
+	--header-secondary: #4f5660;
+	--text-normal: #2e3338;
+	--text-inactive: #747f8d;
+	--text-link: #0067e0;
+	--channels-default: #6a7480;
+	--link-normal: #4f5660;
+	--link-hover: #2e3338;
+	--link-active: #060607;
+	--link-inactive: #c7ccd1;
+	--bg-primary: #fff;
+	--bg-secondary: #f2f3f5;
+	--bg-quaternary: #ebedef;
+	--bg-tertiary: #e3e5e8;
+	--bg-accent: #747f8d;
+	--bg-floating: #fff;
+	--bg-mod-hover: rgba(116, 127, 141, 0.08);
+	--bg-mod-active: rgba(116, 127, 141, 0.16);
+	--bg-mod-selected: rgba(116, 127, 141, 0.24);
+	--bg-mod-accent: rgba(6, 6, 7, 0.08);
+	--bg-mentioned: rgba(250, 166, 26, 0.1);
+	--bg-mentioned-hover: rgba(250, 166, 26, 0.2);
+	--bg-message-hover: rgba(6, 6, 7, 0.02);
+	--elevation-stroke: 0 0 0 1px rgba(6, 6, 7, 0.08);
+	--elevation-low: 0 1px 0 rgba(6, 6, 7, 0.1), 0 1.5px 0 rgba(6, 6, 7, 0.025), 0 2px 0 rgba(6, 6, 7, 0.025);
+	--elevation-medium: 0 4px 4px rgba(0, 0, 0, 0.08);
+	--elevation-high: 0 8px 16px rgba(0, 0, 0, 0.16);
+	--logo-primary: #7289da;
+	--guild-header-text-shadow: 0 1px 1px hsla(0, 0%, 100%, 0.4);
+	--channeltextarea-bg: #ebedef;
+	--activity-card-bg: #fff;
+	--textbox-markdown-syntax: #6a7480;
+}
