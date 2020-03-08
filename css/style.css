@@ -123,10 +123,14 @@ main {
     flex-basis: content;
     align-items: center;
     margin-right: 20px;
+    color: var(--link-normal);
+    text-decoration: none;
+    font-weight: 600;
 }
 
 .nav-link:hover {
     cursor: pointer;
+    color: var(--link-hover);
 }
 
 #nav-user {
@@ -194,6 +198,7 @@ main {
     padding: 10px;
     cursor: pointer;
     border-radius: 5px 5px 0px 0px;
+    background: var(--bg-primary);
 }
 
 .tab-panel {
@@ -239,4 +244,19 @@ main {
 
 .form input[type='submit']:hover {
     background: var(--bg-accent);
+}
+
+#signin-popup {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    justify-content: center;
+    background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+}
+
+#signin-window {
+    display: flex;
+    margin-top: 10%;
 }

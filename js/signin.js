@@ -1,4 +1,27 @@
 window.onload = function () {
+    // Show signin window
+    let signinToggle = document.getElementById('signin-toggle');
+    let signinPopup = document.getElementById('signin-popup');
+    signinToggle.addEventListener('click', function () {
+        if (signinPopup.style.display == 'none') {
+            signinPopup.style.display = 'flex';
+        }
+    });
+
+    // Hide signin window when clicked outside
+    window.onclick = function (event) {
+        if (event.target == signinPopup) {
+            signinPopup.style.display = 'none';
+        }
+    }
+
+    // Hide signin window when ESC key is pressed
+    window.addEventListener('keydown', function (event) {
+        if (event.which == 27 && signinPopup.style.display == 'flex') {
+            signinPopup.style.display = 'none';
+        }
+    });
+
     // Login form
     let loginForm = document.getElementById('login-form');
     loginForm.addEventListener('submit', function () {

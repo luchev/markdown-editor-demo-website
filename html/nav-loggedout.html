@@ -1,6 +1,36 @@
-<div class="nav-link">
-    <a href="/p/signup">Sign up</a>
+<div class="nav-link" id="signin-toggle">Sign in</div>
+
+<div id="signin-popup" style="display: none;">
+    <div id="signin-window" class="tab-container">
+        <div class="tab-link-list">
+            <div class="tab-link tab-link-active" onclick="openTab(event, 'login-tab')">
+                Log in
+            </div>
+            <div class="tab-link" onclick="openTab(event, 'signup-tab')">
+                Sign up
+            </div>
+        </div>
+        <div class="tab-panels">
+            <div id="login-tab" class="tab-panel tab-panel-active">
+                <form id="login-form" class="form" method="post">
+                    <input type="email" name="email" autocomplete="username" placeholder="Email" required />
+                    <input type="password" name="password" autocomplete="current-password" placeholder="Password"
+                        required />
+                    <input type="submit" value="Log in" />
+                </form>
+            </div>
+            <div id="signup-tab" class="tab-panel">
+                <form id="signup-form" class="form" method="post">
+                    <input type="email" name="email" autocomplete="username" placeholder="Email" required />
+                    <input type="password" name="password" autocomplete="new-password" placeholder="Password"
+                        required />
+                    <input type="password" name="confirm-password" autocomplete="new-password"
+                        placeholder="Confirm password" required />
+                    <input type="submit" value="Sign up" />
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
-<div class="nav-link">
-    <a href="/p/login">Sign in</a>
-</div>
+
+<script src="../js/signin.js"></script>
