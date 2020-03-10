@@ -6,3 +6,61 @@
         <div id="editor" contenteditable="true"></div>
     </div>
 </main>
+
+<script>
+    let editor = document.getElementById('editor');
+    let observer = new MutationObserver(function (mutations) {
+        mutations.forEach(function (mutation) {
+            // Add first div if the editor is empty and this is the first addedd #text
+            if (mutation.addedNodes.length > 0) {
+                let addedNode = mutation.addedNodes[0];
+                if (addedNode.nodeName.toLowerCase() != 'div' && addedNode.parentElement == editor) {
+                    let newDiv = document.createElement('div');
+                    newDiv.innerText = addedNode.textContent;
+                    editor.replaceChild(newDiv, addedNode);
+
+                    // Move cursor to end of line
+                    let range = document.createRange();
+                    let sel = window.getSelection();
+                    range.setStart(editor.childNodes[0], newDiv.innerHTML.length);
+                    range.collapse(true);
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                }
+            }
+
+            // MD formatting
+            if (mutation.type == 'characterData') {
+                let parent = mutation.target.parentElement;
+                if (parent == null) {
+                    parent = editor.firstChild;
+                }
+
+                let header1Regex = RegExp('#\\s');
+                let header2Regex = RegExp('##\\s');
+
+                if (header2Regex.test(parent.innerText)) {
+                    parent.className = 'header-2';
+                }
+                else if (header1Regex.test(parent.innerText)) {
+                    parent.className = 'header-1';
+                } else {
+                    parent.className = '';
+                }
+            }
+        });
+    });
+
+    let observerConfig = {
+        childList: true,
+        subtree: true, // observe also grandchildren
+        characterData: true // observe typing
+        // attributes: true, 
+    }
+    observer.observe(editor, observerConfig);
+
+    window.addEventListener('load', function () {
+        // observer.observe(editor, observerConfig);
+    });
+
+</script>
