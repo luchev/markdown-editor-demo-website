@@ -1,225 +1,352 @@
 class Editor {
-    constructor(private container: HTMLElement, private theme: EditorTheme = new EditorTheme()) {
-        container.contentEditable = "true";
-        this.applyTheme();
+    constructor(private container: HTMLElement, private editorTheme: EditorTheme = {}, private mdTheme: MDTheme = {}) {
+        this.initializeContainer();
+        this.applyEditorTheme();
+        this.applyMDTheme();
+        this.createListeners();
     }
 
-    private applyTheme(): void {
-        let cssString: string = "";
-        Object.entries(this.theme.style).forEach(([key, value]: [string, string]) => {
-            if (value != "") {
-                console.log(key, value);
-            }
-            cssString += `${key}: ${value}; `;
+    private createListeners(): void {
+
+        let container = this.container;
+        let observer = new MutationObserver(function (mutations) {
+            mutations.forEach(function (mutation) {
+                // Add first div if the editor is empty and this is the first addedd #text
+                if (mutation.addedNodes.length > 0) {
+                    let addedNode: Node = mutation.addedNodes[0];
+
+                    // The first text written will not be in a separate div, so create a div for it
+                    // and put the text inside
+                    if (addedNode.nodeName == "#text" && addedNode.parentElement == container) {
+                        let newDiv = document.createElement("div");
+                        container.insertBefore(newDiv, addedNode.nextSibling);
+                        newDiv.appendChild(addedNode);
+
+                        // Move cursor to end of line
+                        let range: Range = document.createRange();
+                        let sel: Selection | null = window.getSelection();
+                        range.setStart(container.childNodes[0], newDiv.innerHTML.length);
+                        range.collapse(true);
+                        if (sel) {
+                            sel.removeAllRanges();
+                            sel.addRange(range);
+                        }
+                    }
+
+                    // If added node is a div, clear all classes
+                    if (addedNode.nodeName == "DIV") {
+                        if (addedNode.nodeType == Node.ELEMENT_NODE) {
+                            let elementFromNode: HTMLElement = <HTMLElement>addedNode;
+                            while (elementFromNode.hasAttributes()) {
+                                elementFromNode.removeAttribute(elementFromNode.attributes[0].name);
+                            }
+                        }
+                    }
+                }
+
+                if (mutation.type == "childList") {
+                    if (mutation.target.nodeType == Node.ELEMENT_NODE) {
+                        let elementFromNode = <HTMLElement>mutation.target;
+
+                        // Check if the element is empty and clear its classes
+                        if (elementFromNode) {
+                            let spacesRegex = RegExp("\\s*");
+                            if (spacesRegex.test(elementFromNode.innerText)) {
+                                elementFromNode.className = "";
+                            }
+                        }
+                    }
+                }
+
+                // MD formatting
+                if (mutation.type == "characterData") {
+                    let parent = mutation.target.parentElement;
+
+                    let header1Regex = RegExp("#{1}\\s");
+                    let header2Regex = RegExp("#{2}\\s");
+                    let header3Regex = RegExp("#{3}\\s");
+                    let header4Regex = RegExp("#{4}\\s");
+                    let header5Regex = RegExp("#{5}\\s");
+                    let header6Regex = RegExp("#{6}\\s");
+
+                    if (parent) {
+                        if (header6Regex.test(parent.innerText)) {
+                            parent.className = "md-header-6";
+                        } else if (header5Regex.test(parent.innerText)) {
+                            parent.className = "md-header-5";
+                        } else if (header4Regex.test(parent.innerText)) {
+                            parent.className = "md-header-4";
+                        } else if (header3Regex.test(parent.innerText)) {
+                            parent.className = "md-header-3";
+                        } else if (header2Regex.test(parent.innerText)) {
+                            parent.className = "md-header-2";
+                        } else if (header1Regex.test(parent.innerText)) {
+                            parent.className = "md-header-1";
+                        } else {
+                            parent.className = "";
+                        }
+                    }
+                }
+            });
         });
-        this.container.style.cssText = cssString;
+
+        let observerConfig = {
+            childList: true,
+            subtree: true, // observe also grandchildren
+            characterData: true, // observe typing
+            // attributes: true,
+        }
+        observer.observe(this.container, observerConfig);
+
+    }
+
+    private applyMDTheme(): void {
+        Object.entries(this.mdTheme).forEach(([className, properties]: [string, CSSStringProperties]) => {
+            CSSHelper.injectClass(className, properties);
+        });
+    }
+
+    private initializeContainer(): void {
+        // Make sure the container is a div
+        let containerParent = this.container.parentElement;
+        let editorDiv = document.createElement("div");
+
+        let id = this.container.id;
+        if (this.container.tagName.toLowerCase() == "div") {
+            // Clear the div from attributes and content
+            this.container.innerHTML = "";
+            while (this.container.hasAttributes()) {
+                let attribute = this.container.attributes[0].name;
+                this.container.removeAttribute(attribute);
+            }
+        } else if (this.container.tagName.toLowerCase() != "div" && containerParent != null) {
+            // Replace the given element with an empty div
+            containerParent.replaceChild(editorDiv, this.container);
+            this.container = editorDiv;
+        } else {
+            console.error("[md] The given element is not of type DIV and cannot be converted to DIV");
+            return;
+        }
+
+        // Return the container its original id
+        this.container.id = id;
+
+        // Make the div editable
+        this.container.contentEditable = "true";
+    }
+
+    private applyEditorTheme(): void {
+        this.container.style.cssText = CSSHelper.stringifyCSSProperties(this.editorTheme);
     }
 }
 
-class CSSManager {
-    private styleElement: HTMLStyleElement;
+class CSSHelper {
+    private static styleElement: HTMLStyleElement;
+    private static instance: CSSHelper = new CSSHelper();
 
-    constructor() {
-        this.styleElement = document.createElement('style');
-        this.styleElement.type = "text/css";
-        document.getElementsByTagName("head")[0].appendChild(this.styleElement);
+    private constructor() {
+        CSSHelper.styleElement = document.createElement("style");
+        CSSHelper.styleElement.type = "text/css";
+        document.getElementsByTagName("head")[0].appendChild(CSSHelper.styleElement);
     }
 
-    public addClass(className: string): void {
-        this.styleElement.innerHTML += ` .${className} { color: red; } `;
+    static injectClass(name: string, properties: CSSStringProperties): void {
+        let cssTextPropertoes = CSSHelper.stringifyCSSProperties(properties);
+        CSSHelper.styleElement.innerHTML += ` .${name} { ${cssTextPropertoes} } `;
     }
-}
 
-class EditorTheme {
-    constructor(public name: string = "", public style: CSSProperties = {}) { }
-}
-
-class CSSClass {
-    constructor(public name: string, public properties: CSSProperties) { }
-}
-
-class MDTheme {
-    constructor(public name: string = "", public classes: CSSClass[]) { }
+    static stringifyCSSProperties(property: CSSStringProperties): string {
+        let cssString: string = "";
+        Object.entries(property).forEach(([key, value]: [string, string]) => {
+            if (value != "") {
+                cssString += `${key}: ${value}; `;
+            }
+        });
+        return cssString;
+    }
 }
 
 // Add editor themes
-let editorThemes: EditorTheme[] = new Array<EditorTheme>();
 
-editorThemes.push(new EditorTheme("dark", {
-    background: "#202225",
-    width: "826px",
-    height: "300px",
-    padding: "20px 30px 20px 30px",
+var darkEditorTheme: EditorTheme = {
+    "background": "#202225",
+    "width": "826px",
+    "height": "300px",
+    "padding": "20px 30px 20px 30px",
     "border-radius": "5px",
-    cursor: "default",
-    overflow: "auto",
+    "cursor": "default",
+    "overflow": "auto",
     "box-shadow": "0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19)",
-    color: "#dcddde",
-    outline: "none",
-}));
+    "color": "#dcddde",
+    "outline": "none",
+};
 
-editorThemes.push(new EditorTheme("light", {
-    background: "white",
-    width: "826px",
-    height: "300px",
-    padding: "20px 30px 20px 30px",
-    "border-radius": "5px",
-    cursor: "default",
-    overflow: "auto",
-    "box-shadow": "0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19)",
-    color: "black",
-    outline: "none",
-}));
+let darkMDTheme: MDTheme = {
+    "md-header-1": {
+        "margin": "24px 0 16px 0",
+        "font-weight": "600",
+        "line-height": "1.25",
+        "font-size": "2em",
+        "padding-bottom": ".3em",
+        "border-bottom": "1px solid #eaecef",
+    },
+    "md-header-2": {
+        "margin": "24px 0 16px 0",
+        "font-weight": "600",
+        "line-height": "1.25",
+        "padding-bottom": ".3em",
+        "border-bottom": "1px solid #eaecef",
+        "font-size": "1.5em",
+    },
+    "md-header-3": {
+        "margin": "24px 0 16px 0",
+        "font-weight": "600",
+        "line-height": "1.25",
+        "font-size": "1.25em",
+    },
+    "md-header-4": {
+        "margin": "24px 0 16px 0",
+        "font-weight": "600",
+        "line-height": "1.25",
+        "font-size": "1em",
+    },
+    "md-header-5": {
+        "margin": "24px 0 16px 0",
+        "font-weight": "600",
+        "line-height": "1.25",
+        "font-size": ".875em",
+    },
+    "md-header-6": {
+        "margin": "24px 0 16px 0",
+        "font-weight": "600",
+        "line-height": "1.25",
+        "font-size": ".85em",
+    },
+    "md-italics": {
+        "font-style": "italic",
+    },
+    "md-bold": {
+        "font-weight": "bold",
+    },
+    "md-strikethrough": {
+        "text-decoration": "line-through",
+    },
+    "md-ordered-list": {
+        "list-style-type": "decimal",
+    },
+    "md-unordered-list": {
+        "list-style-type": "circle",
+    },
+    "md-link": {
+        "text-decoration": "none",
+        "color": "rgb(77, 172, 253)",
+    },
+    "md-image": {
+        "max-width": "100%",
+    },
+    "md-inline-code": {
+        "font-family": "monospace",
+        "padding": ".2em .4em",
+        "font-size": "85%",
+        "border-radius": "3px",
+        "background-color": "rgba(220, 224, 228, 0.1) !important",
+    },
+    "md-block-code": {
+        "font-family": "monospace",
+        "border-radius": "3px",
+        "word-wrap": "normal",
+        "padding": "16px",
+        "background": "rgba(220, 224, 228, 0.1) !important",
+    },
+    "md-table-header": {
+        "line-height": "1.5",
+        "border-spacing": "0",
+        "border-collapse": "collapse",
+        "text-align": "center",
+        "font-weight": "600",
+        "padding": "6px 13px",
+        "border": "1px solid #dfe2e5",
+    },
+    "md-table-cell": {
+        "line-height": "1.5",
+        "border-spacing": "0",
+        "border-collapse": "collapse",
+        "text-align": "right",
+        "padding": "6px 13px",
+        "border": "1px solid #dfe2e5",
+    },
+    "md-quote": {
+        "border-spacing": "0",
+        "border-collapse": "collapse",
+        "text-align": "right",
+        "padding": "6px 13px",
+        "border": "1px solid #dfe2e5",
+    },
+    "md-horizontal-line": {
+        "line-height": "1.5",
+        "overflow": "hidden",
+        "height": ".25em",
+        "padding": "0",
+        "margin": "24px 0",
+        "background": "white",
+    },
+}
 
-let s = document.getElementById('editor');
-let p = new Editor(<HTMLElement>s, editorThemes[0]);
+var s = document.getElementById("editor");
+let p = new Editor(<HTMLElement>s, darkEditorTheme, darkMDTheme);
 
+/**
+ * @description Editor theme is a set of CSS properties
+ * Editor Theme is directly applied as style to the editor
+ */
+interface EditorTheme extends CSSStringProperties { }
 
-// import { Properties as style } from 'csstype';
+/**
+ * @description Markdown theme where the field names represent class names
+ * and the values represent CSS class properties
+ */
+interface MDTheme {
+    "md-header-1"?: CSSStringProperties;
+    "md-header-2"?: CSSStringProperties;
+    "md-header-3"?: CSSStringProperties;
+    "md-header-4"?: CSSStringProperties;
+    "md-header-5"?: CSSStringProperties;
+    "md-header-6"?: CSSStringProperties;
+    "md-italics"?: CSSStringProperties;
+    "md-bold"?: CSSStringProperties;
+    "md-strikethrough"?: CSSStringProperties;
+    "md-ordered-list"?: CSSStringProperties;
+    "md-unordered-list"?: CSSStringProperties;
+    "md-link"?: CSSStringProperties;
+    "md-image"?: CSSStringProperties;
+    "md-inline-code"?: CSSStringProperties;
+    "md-block-code"?: CSSStringProperties;
+    "md-table-header"?: CSSStringProperties;
+    "md-table-cell"?: CSSStringProperties;
+    "md-quote"?: CSSStringProperties;
+    "md-horizontal-line"?: CSSStringProperties;
+}
 
-// const style: style<string | number> = {
-//     padding: 10,
-//     margin: '1rem',
-//     color: "red",
-//     height: "123",
-// };
+/**
+ * @description CSS properties named as DOM object fields.
+ * border-radius in normal css is named borderRadius as a DOM object field.
+ * 
+ * @example borderRadius, color, boxShadow
+ */
+interface CSSObjectProperties extends StandardProperties, SvgProperties { }
 
-// class Editor {
-//     constructor(private container: HTMLElement, private theme: EditorTheme = new EditorTheme()) {
-//         container.contentEditable = "true";
-//         this.applyTheme();
-//     }
+/**
+ * @description CSS properties named as they are usually typed in CSS files
+ * 
+ * @example border-radius, color, box-shadow
+ */
+interface CSSStringProperties extends StandardPropertiesHyphen, SvgPropertiesHyphen { }
 
-//     private applyTheme(): void {
-//         let styleContent: string = "";
-//         Object.entries(this.theme).forEach(([key, value]: [string, any]) => {
-//             if (value != "") {
-//                 // this.container.style.setProperty(key, value);
-//                 this.container.style[key] = value;
-//                 // styleContent += `${key}: ${value};`;
-//             }
-//         });
-//         // this.container.style.cssText = styleContent;
-//     }
-// }
+/**
+ * Automatically generated interfaces with lists of CSS properties
+ * @see https://github.com/frenic/csstype
+ */
 
-// class CSSManager {
-//     private styleElement: HTMLStyleElement;
-
-//     constructor() {
-//         this.styleElement = document.createElement('style');
-//         this.styleElement.type = "text/css";
-//         document.getElementsByTagName("head")[0].appendChild(this.styleElement);
-//     }
-
-//     public addClass(className: string): void {
-//         this.styleElement.innerHTML += ` .${className} { color: red; } `;
-//     }
-// }
-
-// class EditorTheme {
-//     public background: string = "";
-//     public fontSize: string = "";
-//     public font: string = "";
-//     public width: string = "";
-//     public height: string = "";
-//     public padding: string = "";
-//     public color: string = "";
-//     public cursor: string = "";
-//     public boxShadow: string = "";
-//     public margin: string = "";
-//     public display: string = "";
-//     public border: string = "";
-//     public borderRadius: string = "";
-//     public overflow: string = "";
-//     public outline: string = "";
-
-//     constructor(
-//         {
-//             background,
-//             fontSize,
-//             font,
-//             width,
-//             height,
-//             padding,
-//             color,
-//             cursor,
-//             boxShadow,
-//             margin,
-//             display,
-//             border,
-//             borderRadius,
-//             overflow,
-//             outline
-//         }: {
-//             background?: string
-//             fontSize?: string,
-//             font?: string,
-//             width?: string,
-//             height?: string,
-//             padding?: string,
-//             color?: string,
-//             cursor?: string,
-//             boxShadow?: string,
-//             margin?: string,
-//             display?: string,
-//             border?: string,
-//             borderRadius?: string,
-//             overflow?: string,
-//             outline?: string,
-//         } = {}) {
-//         if (background) { this.background = background; }
-//         if (fontSize) { this.fontSize = fontSize; }
-//         if (width) { this.width = width; }
-//         if (height) { this.height = height; }
-//         if (padding) { this.padding = padding; }
-//         if (color) { this.color = color; }
-//         if (cursor) { this.cursor = cursor; }
-//         if (boxShadow) { this.boxShadow = boxShadow; }
-//         if (margin) { this.margin = margin; }
-//         if (display) { this.display = display; }
-//         if (border) { this.border = border; }
-//         if (borderRadius) { this.borderRadius = borderRadius; }
-//         if (overflow) { this.overflow = overflow; }
-//         if (font) { this.font = font; }
-//         if (outline) { this.outline = outline; }
-//     }
-// }
-
-// let editorThemes: { [name: string]: EditorTheme; } = {};
-
-// editorThemes["dark"] = new EditorTheme({
-//     background: "#202225",
-//     width: "826px",
-//     height: "300px",
-//     padding: "20px 30px 20px 30px",
-//     borderRadius: "5px",
-//     cursor: "default",
-//     overflow: "auto",
-//     boxShadow: "0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19)",
-//     color: "#dcddde",
-//     outline: "none",
-// });
-
-// editorThemes["white"] = new EditorTheme({
-//     background: "white",
-//     width: "826px",
-//     height: "300px",
-//     padding: "20px 30px 20px 30px",
-//     borderRadius: "5px",
-//     cursor: "default",
-//     overflow: "auto",
-//     boxShadow: "0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19)",
-//     color: "black",
-//     outline: "none",
-// });
-
-// let s = document.getElementById('editor');
-// let p = new Editor(<HTMLElement>s, editorThemes["white"]);
-
-
-
-interface Properties extends StandardProperties, SvgProperties { }
 interface StandardProperties extends StandardLonghandProperties, StandardShorthandProperties { }
 interface StandardLonghandProperties {
     alignContent?: string;
@@ -670,8 +797,6 @@ interface SvgProperties {
     wordSpacing?: string;
     writingMode?: string;
 }
-
-interface CSSProperties extends StandardPropertiesHyphen, SvgPropertiesHyphen { }
 interface StandardPropertiesHyphen extends StandardLonghandPropertiesHyphen, StandardShorthandPropertiesHyphen { }
 interface StandardLonghandPropertiesHyphen {
     "align-content"?: string;
@@ -685,7 +810,7 @@ interface StandardLonghandPropertiesHyphen {
     "animation-name"?: string;
     "animation-play-state"?: string;
     "animation-timing-function"?: string;
-    appearance?: string;
+    "appearance"?: string;
     "aspect-ratio"?: string;
     "backdrop-filter"?: string;
     "backface-visibility"?: string;
@@ -747,7 +872,7 @@ interface StandardLonghandPropertiesHyphen {
     "border-top-right-radius"?: string;
     "border-top-style"?: string;
     "border-top-width"?: string;
-    bottom?: string;
+    "bottom"?: string;
     "box-decoration-break"?: string;
     "box-shadow"?: string;
     "box-sizing"?: string;
@@ -756,9 +881,9 @@ interface StandardLonghandPropertiesHyphen {
     "break-inside"?: string;
     "caption-side"?: string;
     "caret-color"?: string;
-    clear?: string;
+    "clear"?: string;
     "clip-path"?: string;
-    color?: string;
+    "color"?: string;
     "color-adjust"?: string;
     "column-count"?: string;
     "column-fill"?: string;
@@ -768,22 +893,22 @@ interface StandardLonghandPropertiesHyphen {
     "column-rule-width"?: string;
     "column-span"?: string;
     "column-width"?: string;
-    contain?: string;
-    content?: string;
+    "contain"?: string;
+    "content"?: string;
     "counter-increment"?: string;
     "counter-reset"?: string;
     "counter-set"?: string;
-    cursor?: string;
-    direction?: string;
-    display?: string;
+    "cursor"?: string;
+    "direction"?: string;
+    "display"?: string;
     "empty-cells"?: string;
-    filter?: string;
+    "filter"?: string;
     "flex-basis"?: string;
     "flex-direction"?: string;
     "flex-grow"?: string;
     "flex-shrink"?: string;
     "flex-wrap"?: string;
-    float?: string;
+    "float"?: string;
     "font-family"?: string;
     "font-feature-settings"?: string;
     "font-kerning"?: string;
@@ -813,25 +938,25 @@ interface StandardLonghandPropertiesHyphen {
     "grid-template-columns"?: string;
     "grid-template-rows"?: string;
     "hanging-punctuation"?: string;
-    height?: string;
-    hyphens?: string;
+    "height"?: string;
+    "hyphens"?: string;
     "image-orientation"?: string;
     "image-rendering"?: string;
     "image-resolution"?: string;
     "initial-letter"?: string;
     "inline-size"?: string;
-    inset?: string;
+    "inset"?: string;
     "inset-block"?: string;
     "inset-block-end"?: string;
     "inset-block-start"?: string;
     "inset-inline"?: string;
     "inset-inline-end"?: string;
     "inset-inline-start"?: string;
-    isolation?: string;
+    "isolation"?: string;
     "justify-content"?: string;
     "justify-items"?: string;
     "justify-self"?: string;
-    left?: string;
+    "left"?: string;
     "letter-spacing"?: string;
     "line-break"?: string;
     "line-height"?: string;
@@ -884,14 +1009,14 @@ interface StandardLonghandPropertiesHyphen {
     "offset-path"?: string;
     "offset-rotate"?: string;
     "offset-rotation"?: string;
-    opacity?: string;
-    order?: string;
-    orphans?: string;
+    "opacity"?: string;
+    "order"?: string;
+    "orphans"?: string;
     "outline-color"?: string;
     "outline-offset"?: string;
     "outline-style"?: string;
     "outline-width"?: string;
-    overflow?: string;
+    "overflow"?: string;
     "overflow-anchor"?: string;
     "overflow-block"?: string;
     "overflow-clip-box"?: string;
@@ -918,20 +1043,20 @@ interface StandardLonghandPropertiesHyphen {
     "page-break-before"?: string;
     "page-break-inside"?: string;
     "paint-order"?: string;
-    perspective?: string;
+    "perspective"?: string;
     "perspective-origin"?: string;
     "place-content"?: string;
     "pointer-events"?: string;
-    position?: string;
-    quotes?: string;
-    resize?: string;
-    right?: string;
-    rotate?: string;
+    "position"?: string;
+    "quotes"?: string;
+    "resize"?: string;
+    "right"?: string;
+    "rotate"?: string;
     "row-gap"?: string;
     "ruby-align"?: string;
     "ruby-merge"?: string;
     "ruby-position"?: string;
-    scale?: string;
+    "scale"?: string;
     "scroll-behavior"?: string;
     "scroll-margin"?: string;
     "scroll-margin-block"?: string;
@@ -988,9 +1113,9 @@ interface StandardLonghandPropertiesHyphen {
     "text-transform"?: string;
     "text-underline-offset"?: string;
     "text-underline-position"?: string;
-    top?: string;
+    "top"?: string;
     "touch-action"?: string;
-    transform?: string;
+    "transform"?: string;
     "transform-box"?: string;
     "transform-origin"?: string;
     "transform-style"?: string;
@@ -998,27 +1123,27 @@ interface StandardLonghandPropertiesHyphen {
     "transition-duration"?: string;
     "transition-property"?: string;
     "transition-timing-function"?: string;
-    translate?: string;
+    "translate"?: string;
     "unicode-bidi"?: string;
     "user-select"?: string;
     "vertical-align"?: string;
-    visibility?: string;
+    "visibility"?: string;
     "white-space"?: string;
-    widows?: string;
-    width?: string;
+    "widows"?: string;
+    "width"?: string;
     "will-change"?: string;
     "word-break"?: string;
     "word-spacing"?: string;
     "word-wrap"?: string;
     "writing-mode"?: string;
     "z-index"?: string;
-    zoom?: string;
+    "zoom"?: string;
 }
 interface StandardShorthandPropertiesHyphen {
-    all?: string;
-    animation?: string;
-    background?: string;
-    border?: string;
+    "all"?: string;
+    "animation"?: string;
+    "background"?: string;
+    "border"?: string;
     "border-block"?: string;
     "border-block-end"?: string;
     "border-block-start"?: string;
@@ -1035,51 +1160,51 @@ interface StandardShorthandPropertiesHyphen {
     "border-top"?: string;
     "border-width"?: string;
     "column-rule"?: string;
-    columns?: string;
-    flex?: string;
+    "columns"?: string;
+    "flex"?: string;
     "flex-flow"?: string;
-    font?: string;
-    gap?: string;
-    grid?: string;
+    "font"?: string;
+    "gap"?: string;
+    "grid"?: string;
     "grid-area"?: string;
     "grid-column"?: string;
     "grid-row"?: string;
     "grid-template"?: string;
     "line-clamp"?: string;
     "list-style"?: string;
-    margin?: string;
-    mask?: string;
+    "margin"?: string;
+    "mask"?: string;
     "mask-border"?: string;
-    motion?: string;
-    offset?: string;
-    outline?: string;
-    padding?: string;
+    "motion"?: string;
+    "offset"?: string;
+    "outline"?: string;
+    "padding"?: string;
     "place-items"?: string;
     "place-self"?: string;
     "text-decoration"?: string;
     "text-emphasis"?: string;
-    transition?: string;
+    "transition"?: string;
 }
 interface SvgPropertiesHyphen {
     "alignment-baseline"?: string;
     "baseline-shift"?: string;
-    clip?: string;
+    "clip"?: string;
     "clip-path"?: string;
     "clip-rule"?: string;
-    color?: string;
+    "color"?: string;
     "color-interpolation"?: string;
     "color-rendering"?: string;
-    cursor?: string;
-    direction?: string;
-    display?: string;
+    "cursor"?: string;
+    "direction"?: string;
+    "display"?: string;
     "dominant-baseline"?: string;
-    fill?: string;
+    "fill"?: string;
     "fill-opacity"?: string;
     "fill-rule"?: string;
-    filter?: string;
+    "filter"?: string;
     "flood-color"?: string;
     "flood-opacity"?: string;
-    font?: string;
+    "font"?: string;
     "font-family"?: string;
     "font-size"?: string;
     "font-size-adjust"?: string;
@@ -1092,19 +1217,19 @@ interface SvgPropertiesHyphen {
     "letter-spacing"?: string;
     "lighting-color"?: string;
     "line-height"?: string;
-    marker?: string;
+    "marker"?: string;
     "marker-end"?: string;
     "marker-mid"?: string;
     "marker-start"?: string;
-    mask?: string;
-    opacity?: string;
-    overflow?: string;
+    "mask"?: string;
+    "opacity"?: string;
+    "overflow"?: string;
     "paint-order"?: string;
     "pointer-events"?: string;
     "shape-rendering"?: string;
     "stop-color"?: string;
     "stop-opacity"?: string;
-    stroke?: string;
+    "stroke"?: string;
     "stroke-dasharray"?: string;
     "stroke-dashoffset"?: string;
     "stroke-linecap"?: string;
@@ -1117,7 +1242,7 @@ interface SvgPropertiesHyphen {
     "text-rendering"?: string;
     "unicode-bidi"?: string;
     "vector-effect"?: string;
-    visibility?: string;
+    "visibility"?: string;
     "white-space"?: string;
     "word-spacing"?: string;
     "writing-mode"?: string;
