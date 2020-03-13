@@ -57,12 +57,12 @@ class Editor {
                 // MD formatting
                 if (mutation.type == "characterData") {
                     let parent = mutation.target.parentElement;
-                    let header1Regex = RegExp("#{1}\\s");
-                    let header2Regex = RegExp("#{2}\\s");
-                    let header3Regex = RegExp("#{3}\\s");
-                    let header4Regex = RegExp("#{4}\\s");
-                    let header5Regex = RegExp("#{5}\\s");
-                    let header6Regex = RegExp("#{6}\\s");
+                    let header1Regex = RegExp("^#{1}\\s");
+                    let header2Regex = RegExp("^#{2}\\s");
+                    let header3Regex = RegExp("^#{3}\\s");
+                    let header4Regex = RegExp("^#{4}\\s");
+                    let header5Regex = RegExp("^#{5}\\s");
+                    let header6Regex = RegExp("^#{6}\\s");
                     if (parent) {
                         if (header6Regex.test(parent.innerText)) {
                             parent.className = "md-header-6";
