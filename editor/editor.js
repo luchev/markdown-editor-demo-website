@@ -218,17 +218,24 @@ class Editor {
  */
 class CSSHelper {
     /**
-     * Deprecated singleton, the class is now static
+     * Deprecated singleton, the class is now
      */
     constructor() {
         CSSHelper.styleElement = document.createElement("style");
         CSSHelper.styleElement.type = "text/css";
         document.getElementsByTagName("head")[0].appendChild(CSSHelper.styleElement);
     }
+    /**
+     * Add a new css class with properties
+     */
     static injectClass(name, properties) {
         const cssTextPropertoes = CSSHelper.stringifyCSSProperties(properties);
         CSSHelper.styleElement.innerHTML += ` .${name} { ${cssTextPropertoes} } `;
     }
+    /**
+     * Convert a list of css properties to a string which is valid css
+     * @param {CSSStringProperties} property CSSproperties
+     */
     static stringifyCSSProperties(property) {
         let cssString = "";
         Object.entries(property).forEach(([key, value]) => {
@@ -239,6 +246,9 @@ class CSSHelper {
         return cssString;
     }
 }
+/**
+ * The instance is used only to initialize the class once
+ */
 CSSHelper.instance = new CSSHelper();
 ;
 /**

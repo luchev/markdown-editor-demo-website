@@ -251,11 +251,17 @@ class Editor<FORMATTER extends Formatter> {
  * converting CSS properties to string which looks like css
  */
 class CSSHelper {
+    /**
+     * The newly added style element in the DOM where all the injections arehappening
+     */
     private static styleElement: HTMLStyleElement;
+    /**
+     * The instance is used only to initialize the class once
+     */
     private static instance: CSSHelper = new CSSHelper();
 
     /**
-     * Deprecated singleton, the class is now static
+     * Deprecated singleton, the class is now
      */
     private constructor () {
         CSSHelper.styleElement = document.createElement("style");
@@ -263,11 +269,18 @@ class CSSHelper {
         document.getElementsByTagName("head")[0].appendChild(CSSHelper.styleElement);
     }
 
+    /**
+     * Add a new css class with properties
+     */
     static injectClass(name: string, properties: CSSStringProperties): void {
         const cssTextPropertoes = CSSHelper.stringifyCSSProperties(properties);
         CSSHelper.styleElement.innerHTML += ` .${name} { ${cssTextPropertoes} } `;
     }
 
+    /**
+     * Convert a list of css properties to a string which is valid css
+     * @param {CSSStringProperties} property CSSproperties
+     */
     static stringifyCSSProperties(property: CSSStringProperties): string {
         let cssString: string = "";
         Object.entries(property).forEach(([key, value]: [string, string]) => {
