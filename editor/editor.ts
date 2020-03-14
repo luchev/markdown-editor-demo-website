@@ -1,18 +1,26 @@
 /**
+ * ! This is a base class, which must be extended for every different formatter
  * Base class for formatter logic used in the editor
  * To customize the formatting rules inherit this clas and
  * override the init method
  */
-class Formatter {
+abstract class Formatter {
+    /**
+     * The constructor only calls the init method,
+     * which is responsible for starting the formatting engine
+     * @param {HTMLElement} container HTML editable div, used as editor
+     */
     constructor (container: HTMLElement) {
         this.init(container);
     }
 
-    init(container: HTMLElement): void {
-        // The constructor calls this method, which
-        // should initialize the logic for formatting the data
-        // in the container.
-    }
+    /**
+     * Called only once by the constructor
+     * This method should initialize all the event handles and methods
+     * which are responsible for formatting the content of the container
+     * @param {HTMLElement} container HTML editable div used as editor
+     */
+    abstract init(container: HTMLElement): void;
 };
 
 /**
@@ -20,9 +28,22 @@ class Formatter {
  * This formatter uses common Markdown syntax to
  */
 class MDFormatter extends Formatter {
-    init(container: HTMLElement): void {
-        const observer = new MutationObserver((mutations) => MDFormatter.parseMutations(container, mutations));
+    /**
+     * An array of [<class-name>, <regex-expression>] tuples
+     * <class-name> is the css class name added to the
+     * element if it matches <regex-expression>
+     */
+    static startLineRegex: [string, RegExp][] = [];
 
+    /**
+     * Initialize the mutation observer, which monitors changes happening
+     * inside the container
+     * @param {HTMLElement} container HTML editable div used as editor
+     */
+    init(container: HTMLElement): void {
+        this.initRegex();
+
+        const observer = new MutationObserver((mutations) => MDFormatter.handleMutations(container, mutations));
         const observerConfig = {
             childList: true,
             subtree: true, // observe also grandchildren
@@ -32,17 +53,60 @@ class MDFormatter extends Formatter {
         observer.observe(container, observerConfig);
     }
 
-    private static parseMutations(container: HTMLElement, mutations: MutationRecord[]): void {
-        for (const mutation of mutations) {
-            MDFormatter.parseMutation(container, mutation);
+    /**
+     * Initialize regexes for matching markdown formatting strings
+     * at the start of the line
+     * e.g headers # and ###
+     */
+    private initRegex(): void {
+        if (MDFormatter.startLineRegex.length === 0) {
+            MDFormatter.startLineRegex.push(["md-header-1", RegExp("^#{1}\\s")]);
+            MDFormatter.startLineRegex.push(["md-header-2", RegExp("^#{2}\\s")]);
+            MDFormatter.startLineRegex.push(["md-header-3", RegExp("^#{3}\\s")]);
+            MDFormatter.startLineRegex.push(["md-header-4", RegExp("^#{4}\\s")]);
+            MDFormatter.startLineRegex.push(["md-header-5", RegExp("^#{5}\\s")]);
+            MDFormatter.startLineRegex.push(["md-header-6", RegExp("^#{6}\\s")]);
+            MDFormatter.startLineRegex.push(["md-quote", RegExp("^>\\s")]);
         }
     }
 
-    private static parseMutation(container: HTMLElement, mutation: MutationRecord): void {
-        // Add first div if the editor is empty and this is the first addedd #text
+    /**
+     * Handle array of Mutations
+     * @param {HTMLElement} container HTML editable div used as editor
+     * @param {MutationRecord[]} mutations array of mutations
+     */
+    private static handleMutations(container: HTMLElement, mutations: MutationRecord[]): void {
+        for (const mutation of mutations) {
+            MDFormatter.handleMutation(container, mutation);
+        }
+    }
+
+    /**
+     * Handle a single mutation by calling the right method depending on the mutation type
+     * @param {HTMLElement} container HTML editable div used as editor
+     * @param {MutationRecord} mutations The mutation that happened
+     */
+    private static handleMutation(container: HTMLElement, mutation: MutationRecord): void {
+
+        if (mutation.type === "childList") {
+            MDFormatter.handleChildListMutation(container, mutation);
+        }
+
+        if (mutation.type === "characterData") {
+            MDFormatter.handleCharacterDataMutation(container, mutation);
+        }
+    }
+
+    /**
+     * Handle a single Mutation of type childList
+     * @param {HTMLElement} container HTML editable div used as editor
+     * @param {MutationRecord} mutation The mutation that happened
+     */
+    private static handleChildListMutation(container: HTMLElement, mutation: MutationRecord): void {
         if (mutation.addedNodes.length > 0) {
             const addedNode: Node = mutation.addedNodes[0];
 
+            // Add first div if the editor is empty and this is the first addedd #text
             // The first text written will not be in a separate div, so create a div for it
             // and put the text inside
             if (addedNode.nodeName === "#text" && addedNode.parentElement === container) {
@@ -53,7 +117,7 @@ class MDFormatter extends Formatter {
                 // Move cursor to end of line
                 const range: Range = document.createRange();
                 const sel: Selection | null = window.getSelection();
-                range.setStart(container.childNodes[0], newDiv.innerHTML.length);
+                range.setStart(container.childNodes[0], newDiv.innerText.length);
                 range.collapse(true);
                 if (sel) {
                     sel.removeAllRanges();
@@ -72,69 +136,78 @@ class MDFormatter extends Formatter {
             }
         }
 
-        if (mutation.type === "childList") {
-            if (mutation.target.nodeType === Node.ELEMENT_NODE) {
-                const elementFromNode = mutation.target as HTMLElement;
 
-                // Check if the element is empty and clear its classes
-                if (elementFromNode) {
-                    const spacesRegex = RegExp("\\s*");
-                    if (spacesRegex.test(elementFromNode.innerText)) {
-                        elementFromNode.className = "";
-                    }
-                }
-            }
-        }
+        // Check if the element is empty and clear its classes
+        if (mutation.target.nodeType === Node.ELEMENT_NODE) {
+            const elementFromNode = mutation.target as HTMLElement;
 
-        // MD formatting
-        if (mutation.type === "characterData") {
-            const parent = mutation.target.parentElement;
-
-            const header1Regex = RegExp("^#{1}\\s");
-            const header2Regex = RegExp("^#{2}\\s");
-            const header3Regex = RegExp("^#{3}\\s");
-            const header4Regex = RegExp("^#{4}\\s");
-            const header5Regex = RegExp("^#{5}\\s");
-            const header6Regex = RegExp("^#{6}\\s");
-
-            if (parent) {
-                if (header6Regex.test(parent.innerText)) {
-                    parent.className = "md-header-6";
-                } else if (header5Regex.test(parent.innerText)) {
-                    parent.className = "md-header-5";
-                } else if (header4Regex.test(parent.innerText)) {
-                    parent.className = "md-header-4";
-                } else if (header3Regex.test(parent.innerText)) {
-                    parent.className = "md-header-3";
-                } else if (header2Regex.test(parent.innerText)) {
-                    parent.className = "md-header-2";
-                } else if (header1Regex.test(parent.innerText)) {
-                    parent.className = "md-header-1";
-                } else {
-                    parent.className = "";
+            if (elementFromNode) {
+                const spacesRegex = RegExp("\\s*");
+                if (spacesRegex.test(elementFromNode.innerText)) {
+                    elementFromNode.className = "";
                 }
             }
         }
     }
-}
 
-class Editor {
+    /**
+     * Handle a single Mutation of type characterData
+     * @param {HTMLElement} container HTML editable div used as editor
+     * @param {MutationRecord} mutation The mutation that happened
+     */
+    private static handleCharacterDataMutation(container: HTMLElement, mutation: MutationRecord): void {
+        const parent = mutation.target.parentElement;
+
+        if (parent) {
+            parent.className = "";
+            for (const [className, regex] of MDFormatter.startLineRegex) {
+                if (regex.test(parent.innerText)) {
+                    parent.className = className;
+                }
+            }
+        }
+    }
+};
+
+/**
+ * Abstraction of the editor as a collection of container, formatter, settings and themes
+ */
+class Editor<FORMATTER extends Formatter> {
+    /**
+     * The formatter used to stylize the content of the editor
+     */
     private formatter: Formatter;
 
-    constructor (private container: HTMLElement, formatter: typeof Formatter, private editorTheme: EditorTheme = {}, private formatterTheme: FormatterTheme = {}) {
+    /**
+     * @param {HTMLElement} container HTML element which will become an ediable div
+     * @param {Formatter} formatter Formatter which determines how the content is stylized
+     * @param {EditorTheme} editorTheme Theme of the editor as a whole
+     * @param {FormatterTheme} formatterTheme List of css classes which assist the formatter in stylizing the content
+     */
+    constructor (private container: HTMLElement,
+        formatter: new (container: HTMLElement) => FORMATTER,
+        private editorTheme: EditorTheme = {},
+        private formatterTheme: FormatterTheme = {}) {
+
         this.initializeContainer();
         this.applyEditorTheme();
         this.injectFormatterTheme();
-
         this.formatter = new formatter(container);
     }
 
+    /**
+     * Inject the css classes into the HTML so the formatter can
+     * use them when stylizing the content
+     */
     private injectFormatterTheme(): void {
         Object.entries(this.formatterTheme).forEach(([className, properties]: [string, CSSStringProperties]) => {
             CSSHelper.injectClass(className, properties);
         });
     }
 
+    /**
+     * Create the editor content container as an editable div
+     */
     private initializeContainer(): void {
         // Make sure the container is a div
         const containerParent = this.container.parentElement;
@@ -165,15 +238,25 @@ class Editor {
         this.container.contentEditable = "true";
     }
 
+    /**
+     * Change the editor theme by changint its style property
+     */
     private applyEditorTheme(): void {
         this.container.style.cssText = CSSHelper.stringifyCSSProperties(this.editorTheme);
     }
 };
 
+/**
+ * Add methods to work with CSS like injecting classes and
+ * converting CSS properties to string which looks like css
+ */
 class CSSHelper {
     private static styleElement: HTMLStyleElement;
     private static instance: CSSHelper = new CSSHelper();
 
+    /**
+     * Deprecated singleton, the class is now static
+     */
     private constructor () {
         CSSHelper.styleElement = document.createElement("style");
         CSSHelper.styleElement.type = "text/css";
@@ -211,7 +294,6 @@ let darkEditorTheme: EditorTheme = {
     "color": "#dcddde",
     "outline": "none",
 };
-
 
 /**
  * Create Markdown Theme
@@ -313,9 +395,8 @@ let darkMDTheme: MDTheme = {
     "md-quote": {
         "border-spacing": "0",
         "border-collapse": "collapse",
-        "text-align": "right",
         "padding": "6px 13px",
-        "border": "1px solid #dfe2e5",
+        "border-left": ".25em solid rgb(53, 59, 66)",
     },
     "md-horizontal-line": {
         "line-height": "1.5",
@@ -327,13 +408,17 @@ let darkMDTheme: MDTheme = {
     },
 };
 
-let s = document.getElementById("editor");
-if (s) {
-    const editor = new Editor(s as HTMLElement, MDFormatter, darkEditorTheme, darkMDTheme);
+/**
+ * Get an anchor to the element-to-be-editor
+ * and create an editor from it
+ */
+let editorContainer = document.getElementById("editor");
+if (editorContainer) {
+    const editor = new Editor(editorContainer as HTMLElement, MDFormatter, darkEditorTheme, darkMDTheme);
 }
 
 /**
- * @description Editor theme is a set of CSS properties
+ * Editor theme is a set of CSS properties
  * Editor Theme is directly applied as style to the editor
  */
 interface EditorTheme extends CSSStringProperties { }
@@ -344,7 +429,7 @@ interface EditorTheme extends CSSStringProperties { }
 interface FormatterTheme { }
 
 /**
- * @description Markdown theme where the field names represent class names
+ * Markdown theme where the field names represent class names
  * and the values represent CSS class properties
  */
 interface MDTheme extends FormatterTheme {
@@ -370,16 +455,14 @@ interface MDTheme extends FormatterTheme {
 }
 
 /**
- * @description CSS properties named as DOM object fields.
+ * CSS properties named as DOM object fields.
  * border-radius in normal css is named borderRadius as a DOM object field.
- *
  * @example borderRadius, color, boxShadow
  */
 interface CSSObjectProperties extends StandardProperties, SvgProperties { }
 
 /**
- * @description CSS properties named as they are usually typed in CSS files
- *
+ * CSS properties named as they are usually typed in CSS files
  * @example border-radius, color, box-shadow
  */
 interface CSSStringProperties extends StandardPropertiesHyphen, SvgPropertiesHyphen { }
