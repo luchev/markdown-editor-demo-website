@@ -1,7 +1,16 @@
-// Initialize list with themes
+/**
+ * Mock interface
+ */
+interface EditorTheme { };
+/**
+ *
+ */
+
+/**
+ * Initiailize list with themes
+ */
 let EditorThemes: { [name: string]: EditorTheme } = {};
-// Add themes to the list
-EditorThemes["dark"] = {
+EditorThemes.dark = {
     "background": "#202225",
     "width": "826px",
     "height": "300px",
@@ -13,7 +22,7 @@ EditorThemes["dark"] = {
     "color": "#dcddde",
     "outline": "none",
 };
-EditorThemes["light"] = {
+EditorThemes.light = {
     "background": "white",
     "width": "826px",
     "height": "300px",
@@ -25,9 +34,3 @@ EditorThemes["light"] = {
     "color": "black",
     "outline": "none",
 };
-
-
-var editorElement = document.getElementById('editor');
-if (editorElement) {
-    var editor = new Editor(editorElement, EditorThemes["dark"]);
-}
