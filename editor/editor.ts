@@ -1,130 +1,160 @@
-class Editor {
-    constructor(private container: HTMLElement, private editorTheme: EditorTheme = {}, private mdTheme: MDTheme = {}) {
-        this.initializeContainer();
-        this.applyEditorTheme();
-        this.applyMDTheme();
-        this.createListeners();
+/**
+ * Base class for formatter logic used in the editor
+ * To customize the formatting rules inherit this clas and
+ * override the init method
+ */
+class Formatter {
+    constructor (container: HTMLElement) {
+        this.init(container);
     }
 
-    private createListeners(): void {
+    init(container: HTMLElement): void {
+        // The constructor calls this method, which
+        // should initialize the logic for formatting the data
+        // in the container.
+    }
+};
 
-        let container = this.container;
-        let observer = new MutationObserver(function (mutations) {
-            mutations.forEach(function (mutation) {
-                // Add first div if the editor is empty and this is the first addedd #text
-                if (mutation.addedNodes.length > 0) {
-                    let addedNode: Node = mutation.addedNodes[0];
+/**
+ * Markdown formatter which is based on the generic Formatter class
+ * This formatter uses common Markdown syntax to
+ */
+class MDFormatter extends Formatter {
+    init(container: HTMLElement): void {
+        const observer = new MutationObserver((mutations) => MDFormatter.parseMutations(container, mutations));
 
-                    // The first text written will not be in a separate div, so create a div for it
-                    // and put the text inside
-                    if (addedNode.nodeName == "#text" && addedNode.parentElement == container) {
-                        let newDiv = document.createElement("div");
-                        container.insertBefore(newDiv, addedNode.nextSibling);
-                        newDiv.appendChild(addedNode);
-
-                        // Move cursor to end of line
-                        let range: Range = document.createRange();
-                        let sel: Selection | null = window.getSelection();
-                        range.setStart(container.childNodes[0], newDiv.innerHTML.length);
-                        range.collapse(true);
-                        if (sel) {
-                            sel.removeAllRanges();
-                            sel.addRange(range);
-                        }
-                    }
-
-                    // If added node is a div, clear all classes
-                    if (addedNode.nodeName == "DIV") {
-                        if (addedNode.nodeType == Node.ELEMENT_NODE) {
-                            let elementFromNode: HTMLElement = <HTMLElement>addedNode;
-                            while (elementFromNode.hasAttributes()) {
-                                elementFromNode.removeAttribute(elementFromNode.attributes[0].name);
-                            }
-                        }
-                    }
-                }
-
-                if (mutation.type == "childList") {
-                    if (mutation.target.nodeType == Node.ELEMENT_NODE) {
-                        let elementFromNode = <HTMLElement>mutation.target;
-
-                        // Check if the element is empty and clear its classes
-                        if (elementFromNode) {
-                            let spacesRegex = RegExp("\\s*");
-                            if (spacesRegex.test(elementFromNode.innerText)) {
-                                elementFromNode.className = "";
-                            }
-                        }
-                    }
-                }
-
-                // MD formatting
-                if (mutation.type == "characterData") {
-                    let parent = mutation.target.parentElement;
-
-                    let header1Regex = RegExp("^#{1}\\s");
-                    let header2Regex = RegExp("^#{2}\\s");
-                    let header3Regex = RegExp("^#{3}\\s");
-                    let header4Regex = RegExp("^#{4}\\s");
-                    let header5Regex = RegExp("^#{5}\\s");
-                    let header6Regex = RegExp("^#{6}\\s");
-
-                    if (parent) {
-                        if (header6Regex.test(parent.innerText)) {
-                            parent.className = "md-header-6";
-                        } else if (header5Regex.test(parent.innerText)) {
-                            parent.className = "md-header-5";
-                        } else if (header4Regex.test(parent.innerText)) {
-                            parent.className = "md-header-4";
-                        } else if (header3Regex.test(parent.innerText)) {
-                            parent.className = "md-header-3";
-                        } else if (header2Regex.test(parent.innerText)) {
-                            parent.className = "md-header-2";
-                        } else if (header1Regex.test(parent.innerText)) {
-                            parent.className = "md-header-1";
-                        } else {
-                            parent.className = "";
-                        }
-                    }
-                }
-            });
-        });
-
-        let observerConfig = {
+        const observerConfig = {
             childList: true,
             subtree: true, // observe also grandchildren
             characterData: true, // observe typing
             // attributes: true,
         }
-        observer.observe(this.container, observerConfig);
-
+        observer.observe(container, observerConfig);
     }
 
-    private applyMDTheme(): void {
-        Object.entries(this.mdTheme).forEach(([className, properties]: [string, CSSStringProperties]) => {
+    private static parseMutations(container: HTMLElement, mutations: MutationRecord[]): void {
+        for (const mutation of mutations) {
+            MDFormatter.parseMutation(container, mutation);
+        }
+    }
+
+    private static parseMutation(container: HTMLElement, mutation: MutationRecord): void {
+        // Add first div if the editor is empty and this is the first addedd #text
+        if (mutation.addedNodes.length > 0) {
+            const addedNode: Node = mutation.addedNodes[0];
+
+            // The first text written will not be in a separate div, so create a div for it
+            // and put the text inside
+            if (addedNode.nodeName === "#text" && addedNode.parentElement === container) {
+                const newDiv = document.createElement("div");
+                container.insertBefore(newDiv, addedNode.nextSibling);
+                newDiv.appendChild(addedNode);
+
+                // Move cursor to end of line
+                const range: Range = document.createRange();
+                const sel: Selection | null = window.getSelection();
+                range.setStart(container.childNodes[0], newDiv.innerHTML.length);
+                range.collapse(true);
+                if (sel) {
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                }
+            }
+
+            // If added node is a div, clear all classes
+            if (addedNode.nodeName === "DIV") {
+                if (addedNode.nodeType === Node.ELEMENT_NODE) {
+                    const elementFromNode: HTMLElement = addedNode as HTMLElement;
+                    while (elementFromNode.hasAttributes()) {
+                        elementFromNode.removeAttribute(elementFromNode.attributes[0].name);
+                    }
+                }
+            }
+        }
+
+        if (mutation.type === "childList") {
+            if (mutation.target.nodeType === Node.ELEMENT_NODE) {
+                const elementFromNode = mutation.target as HTMLElement;
+
+                // Check if the element is empty and clear its classes
+                if (elementFromNode) {
+                    const spacesRegex = RegExp("\\s*");
+                    if (spacesRegex.test(elementFromNode.innerText)) {
+                        elementFromNode.className = "";
+                    }
+                }
+            }
+        }
+
+        // MD formatting
+        if (mutation.type === "characterData") {
+            const parent = mutation.target.parentElement;
+
+            const header1Regex = RegExp("^#{1}\\s");
+            const header2Regex = RegExp("^#{2}\\s");
+            const header3Regex = RegExp("^#{3}\\s");
+            const header4Regex = RegExp("^#{4}\\s");
+            const header5Regex = RegExp("^#{5}\\s");
+            const header6Regex = RegExp("^#{6}\\s");
+
+            if (parent) {
+                if (header6Regex.test(parent.innerText)) {
+                    parent.className = "md-header-6";
+                } else if (header5Regex.test(parent.innerText)) {
+                    parent.className = "md-header-5";
+                } else if (header4Regex.test(parent.innerText)) {
+                    parent.className = "md-header-4";
+                } else if (header3Regex.test(parent.innerText)) {
+                    parent.className = "md-header-3";
+                } else if (header2Regex.test(parent.innerText)) {
+                    parent.className = "md-header-2";
+                } else if (header1Regex.test(parent.innerText)) {
+                    parent.className = "md-header-1";
+                } else {
+                    parent.className = "";
+                }
+            }
+        }
+    }
+}
+
+class Editor {
+    private formatter: Formatter;
+
+    constructor (private container: HTMLElement, formatter: typeof Formatter, private editorTheme: EditorTheme = {}, private formatterTheme: FormatterTheme = {}) {
+        this.initializeContainer();
+        this.applyEditorTheme();
+        this.injectFormatterTheme();
+
+        this.formatter = new formatter(container);
+    }
+
+    private injectFormatterTheme(): void {
+        Object.entries(this.formatterTheme).forEach(([className, properties]: [string, CSSStringProperties]) => {
             CSSHelper.injectClass(className, properties);
         });
     }
 
     private initializeContainer(): void {
         // Make sure the container is a div
-        let containerParent = this.container.parentElement;
-        let editorDiv = document.createElement("div");
+        const containerParent = this.container.parentElement;
+        const editorDiv = document.createElement("div");
 
-        let id = this.container.id;
-        if (this.container.tagName.toLowerCase() == "div") {
+        const id = this.container.id;
+        if (this.container.tagName.toLowerCase() === "div") {
             // Clear the div from attributes and content
             this.container.innerHTML = "";
             while (this.container.hasAttributes()) {
-                let attribute = this.container.attributes[0].name;
+                const attribute = this.container.attributes[0].name;
                 this.container.removeAttribute(attribute);
             }
-        } else if (this.container.tagName.toLowerCase() != "div" && containerParent != null) {
+        } else if (this.container.tagName.toLowerCase() !== "div" && containerParent != null) {
             // Replace the given element with an empty div
             containerParent.replaceChild(editorDiv, this.container);
             this.container = editorDiv;
         } else {
-            console.error("[md] The given element is not of type DIV and cannot be converted to DIV");
+            // Error
+            // console.log("[md] The given element is not of type DIV and cannot be converted to DIV");
             return;
         }
 
@@ -138,37 +168,38 @@ class Editor {
     private applyEditorTheme(): void {
         this.container.style.cssText = CSSHelper.stringifyCSSProperties(this.editorTheme);
     }
-}
+};
 
 class CSSHelper {
     private static styleElement: HTMLStyleElement;
     private static instance: CSSHelper = new CSSHelper();
 
-    private constructor() {
+    private constructor () {
         CSSHelper.styleElement = document.createElement("style");
         CSSHelper.styleElement.type = "text/css";
         document.getElementsByTagName("head")[0].appendChild(CSSHelper.styleElement);
     }
 
     static injectClass(name: string, properties: CSSStringProperties): void {
-        let cssTextPropertoes = CSSHelper.stringifyCSSProperties(properties);
+        const cssTextPropertoes = CSSHelper.stringifyCSSProperties(properties);
         CSSHelper.styleElement.innerHTML += ` .${name} { ${cssTextPropertoes} } `;
     }
 
     static stringifyCSSProperties(property: CSSStringProperties): string {
         let cssString: string = "";
         Object.entries(property).forEach(([key, value]: [string, string]) => {
-            if (value != "") {
+            if (value !== "") {
                 cssString += `${key}: ${value}; `;
             }
         });
         return cssString;
     }
-}
+};
 
-// Add editor themes
-
-var darkEditorTheme: EditorTheme = {
+/**
+ * Create editor theme
+ */
+let darkEditorTheme: EditorTheme = {
     "background": "#202225",
     "width": "826px",
     "height": "300px",
@@ -182,7 +213,9 @@ var darkEditorTheme: EditorTheme = {
 };
 
 
-
+/**
+ * Create Markdown Theme
+ */
 let darkMDTheme: MDTheme = {
     "md-header-1": {
         "margin": "24px 0 16px 0",
@@ -292,10 +325,12 @@ let darkMDTheme: MDTheme = {
         "margin": "24px 0",
         "background": "white",
     },
-}
+};
 
-var s = document.getElementById("editor");
-let p = new Editor(<HTMLElement>s, darkEditorTheme, darkMDTheme);
+let s = document.getElementById("editor");
+if (s) {
+    const editor = new Editor(s as HTMLElement, MDFormatter, darkEditorTheme, darkMDTheme);
+}
 
 /**
  * @description Editor theme is a set of CSS properties
@@ -304,10 +339,15 @@ let p = new Editor(<HTMLElement>s, darkEditorTheme, darkMDTheme);
 interface EditorTheme extends CSSStringProperties { }
 
 /**
+ * Generic formatter theme
+ */
+interface FormatterTheme { }
+
+/**
  * @description Markdown theme where the field names represent class names
  * and the values represent CSS class properties
  */
-interface MDTheme {
+interface MDTheme extends FormatterTheme {
     "md-header-1"?: CSSStringProperties;
     "md-header-2"?: CSSStringProperties;
     "md-header-3"?: CSSStringProperties;
@@ -332,14 +372,14 @@ interface MDTheme {
 /**
  * @description CSS properties named as DOM object fields.
  * border-radius in normal css is named borderRadius as a DOM object field.
- * 
+ *
  * @example borderRadius, color, boxShadow
  */
 interface CSSObjectProperties extends StandardProperties, SvgProperties { }
 
 /**
  * @description CSS properties named as they are usually typed in CSS files
- * 
+ *
  * @example border-radius, color, box-shadow
  */
 interface CSSStringProperties extends StandardPropertiesHyphen, SvgPropertiesHyphen { }
