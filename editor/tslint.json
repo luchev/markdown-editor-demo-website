@@ -6,7 +6,8 @@
     "jsRules": {},
     "rules": {
         "max-classes-per-file": false,
-        "no-empty-interface": false
+        "no-empty-interface": false,
+        "no-shadowed-variable": false
     },
     "rulesDirectory": []
 }
