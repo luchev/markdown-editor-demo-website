@@ -38,19 +38,19 @@ class MDFormatter extends Formatter {
     /**
      * Initialize the mutation observer, which monitors changes happening
      * inside the container
-     * @param {HTMLElement} container HTML editable div used as editor
+     * @param {HTMLElement} editor HTML editable div used as editor
      */
-    init(container: HTMLElement): void {
+    init(editor: HTMLElement): void {
         this.initRegex();
 
-        const observer = new MutationObserver((mutations) => MDFormatter.handleMutations(container, mutations));
+        const observer = new MutationObserver((mutations) => MDFormatter.handleMutations(editor, mutations));
         const observerConfig = {
             childList: true,
             subtree: true, // observe also grandchildren
             characterData: true, // observe typing
             // attributes: true,
         }
-        observer.observe(container, observerConfig);
+        observer.observe(editor, observerConfig);
     }
 
     /**
@@ -87,7 +87,6 @@ class MDFormatter extends Formatter {
      * @param {MutationRecord} mutations The mutation that happened
      */
     private static handleMutation(container: HTMLElement, mutation: MutationRecord): void {
-
         if (mutation.type === "childList") {
             MDFormatter.handleChildListMutation(container, mutation);
         }
@@ -99,25 +98,25 @@ class MDFormatter extends Formatter {
 
     /**
      * Handle a single Mutation of type childList
-     * @param {HTMLElement} container HTML editable div used as editor
+     * @param {HTMLElement} editor HTML editable div used as editor
      * @param {MutationRecord} mutation The mutation that happened
      */
-    private static handleChildListMutation(container: HTMLElement, mutation: MutationRecord): void {
+    private static handleChildListMutation(editor: HTMLElement, mutation: MutationRecord): void {
         if (mutation.addedNodes.length > 0) {
             const addedNode: Node = mutation.addedNodes[0];
 
             // Add first div if the editor is empty and this is the first addedd #text
             // The first text written will not be in a separate div, so create a div for it
             // and put the text inside
-            if (addedNode.nodeName === "#text" && addedNode.parentElement === container) {
+            if (addedNode.nodeName === "#text" && addedNode.parentElement === editor) {
                 const newDiv = document.createElement("div");
-                container.insertBefore(newDiv, addedNode.nextSibling);
+                editor.insertBefore(newDiv, addedNode.nextSibling);
                 newDiv.appendChild(addedNode);
 
                 // Move cursor to end of line
                 const range: Range = document.createRange();
                 const sel: Selection | null = window.getSelection();
-                range.setStart(container.childNodes[0], newDiv.innerText.length);
+                range.setStart(editor.childNodes[0], newDiv.innerText.length);
                 range.collapse(true);
                 if (sel) {
                     sel.removeAllRanges();
@@ -126,7 +125,7 @@ class MDFormatter extends Formatter {
             }
 
             // If added node is a div, clear all classes
-            if (addedNode.nodeName === "DIV") {
+            if (addedNode.nodeName === "DIV" && mutation.target !== editor) {
                 if (addedNode.nodeType === Node.ELEMENT_NODE) {
                     const elementFromNode: HTMLElement = addedNode as HTMLElement;
                     while (elementFromNode.hasAttributes()) {
@@ -138,7 +137,7 @@ class MDFormatter extends Formatter {
 
 
         // Check if the element is empty and clear its classes
-        if (mutation.target.nodeType === Node.ELEMENT_NODE) {
+        if (mutation.target.nodeType === Node.ELEMENT_NODE && mutation.target !== editor) {
             const elementFromNode = mutation.target as HTMLElement;
 
             if (elementFromNode) {
@@ -174,75 +173,120 @@ class MDFormatter extends Formatter {
  */
 class Editor<FORMATTER extends Formatter> {
     /**
-     * The formatter used to stylize the content of the editor
+     * The container for the menu and the editor
      */
-    private formatter: Formatter;
+    private container: HTMLElement = document.createElement("div");
 
     /**
-     * @param {HTMLElement} container HTML element which will become an ediable div
-     * @param {Formatter} formatter Formatter which determines how the content is stylized
-     * @param {EditorTheme} editorTheme Theme of the editor as a whole
-     * @param {FormatterTheme} formatterTheme List of css classes which assist the formatter in stylizing the content
+     * The actual editor which holds the text content
      */
-    constructor (private container: HTMLElement,
-        formatter: new (container: HTMLElement) => FORMATTER,
-        private editorTheme: EditorTheme = {},
-        private formatterTheme: FormatterTheme = {}) {
+    private editor: HTMLElement = document.createElement("div");
 
-        this.initializeContainer();
-        this.applyEditorTheme();
-        this.injectFormatterTheme();
-        this.formatter = new formatter(container);
+    /**
+     * The menu next to the editor
+     */
+    private menu: HTMLElement = document.createElement("div");
+
+    /**
+     * @param {string} containerId HTML element id which will become an ediable div
+     * @param {Formatter} formatter Formatter which determines how the content is stylized
+     * @param {Theme} theme Collection of theme objects
+     */
+    constructor (private containerId: string,
+        formatter: new (container: HTMLElement) => FORMATTER,
+        private theme: Theme) {
+
+        this.initializeContainer(containerId);
+        this.applyTheme();
+        this.initializeFormatter(formatter);
+    }
+
+    private initializeFormatter(formatter: new (container: HTMLElement) => FORMATTER) {
+        const f = new formatter(this.editor);
     }
 
     /**
-     * Inject the css classes into the HTML so the formatter can
+     * Inject the CSS classes into the HTML so the formatter can
      * use them when stylizing the content
      */
     private injectFormatterTheme(): void {
-        Object.entries(this.formatterTheme).forEach(([className, properties]: [string, CSSStringProperties]) => {
-            CSSHelper.injectClass(className, properties);
+        Object.entries(this.theme.formatterTheme).forEach(([identifier, properties]: [string, CssProperties]) => {
+            CSSHelper.injectCss(identifier, properties);
         });
+    }
+
+    /**
+     * Inject the additional CSS classes into the HTML
+     */
+    private injectAdditionalTheme(): void {
+        Object.entries(this.theme.additionalIdentifiers).forEach(([identifier, properties]: [string, CssProperties]) => {
+            CSSHelper.injectCss(this.interpolateCssIdentifier(identifier), properties);
+        });
+    }
+
+    /**
+     * Replace special keywords in CSS identifiers with identifiers,
+     * which are used in the current editor.
+     * This allows users to write custom CSS using identifiers to edit this editor
+     * TODO proper description
+     */
+    private interpolateCssIdentifier(identifier: string) {
+        return identifier.replace(/<EDITOR>/g, "." + this.getEditorCssClass())
+            .replace(/<CONTAINER>/g, "." + this.getContainerCssClass())
+            .replace(/<MENU>/g, "." + this.getMenuCssClass());
     }
 
     /**
      * Create the editor content container as an editable div
      */
-    private initializeContainer(): void {
+    private initializeContainer(futureContainerId: string): void {
         // Make sure the container is a div
-        const containerParent = this.container.parentElement;
-        const editorDiv = document.createElement("div");
+        const futureContainer = document.getElementById(futureContainerId);
+        if (!futureContainer) {
+            throw new Error("Cannot find element with id " + futureContainerId);
+        }
+        const futureContainerParent = futureContainer.parentElement;
 
-        const id = this.container.id;
-        if (this.container.tagName.toLowerCase() === "div") {
-            // Clear the div from attributes and content
-            this.container.innerHTML = "";
-            while (this.container.hasAttributes()) {
-                const attribute = this.container.attributes[0].name;
-                this.container.removeAttribute(attribute);
-            }
-        } else if (this.container.tagName.toLowerCase() !== "div" && containerParent != null) {
-            // Replace the given element with an empty div
-            containerParent.replaceChild(editorDiv, this.container);
-            this.container = editorDiv;
-        } else {
-            // Error
-            // console.log("[md] The given element is not of type DIV and cannot be converted to DIV");
-            return;
+        this.container.id = this.containerId;
+        this.container.className = this.getContainerCssClass();
+
+        if (futureContainerParent) {
+            futureContainerParent.replaceChild(this.container, futureContainer);
         }
 
-        // Return the container its original id
-        this.container.id = id;
+        this.container.appendChild(this.menu);
+        this.menu.className = this.getMenuCssClass();
+        // Add settings button
+        const settingsSvg = DOMHelper.HTMLElementFromString("<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'> <circle cx='12' cy='12' r='3' /> <path d='M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z' /></svg>");
+        this.menu.appendChild(settingsSvg);
 
-        // Make the div editable
-        this.container.contentEditable = "true";
+        this.container.appendChild(this.editor);
+        this.editor.className = this.getEditorCssClass();
+        this.editor.contentEditable = "true";
     }
 
     /**
      * Change the editor theme by changint its style property
      */
-    private applyEditorTheme(): void {
-        this.container.style.cssText = CSSHelper.stringifyCSSProperties(this.editorTheme);
+    private applyTheme(): void {
+        CSSHelper.injectCss("." + this.getContainerCssClass(), this.theme.containerTheme);
+        CSSHelper.injectCss("." + this.getMenuCssClass(), this.theme.menuTheme);
+        CSSHelper.injectCss("." + this.getEditorCssClass(), this.theme.editorTheme);
+
+        this.injectFormatterTheme();
+        this.injectAdditionalTheme();
+    }
+
+    private getContainerCssClass() {
+        return this.containerId + "-container";
+    }
+
+    private getMenuCssClass() {
+        return this.containerId + "-menu";
+    }
+
+    private getEditorCssClass() {
+        return this.containerId + "-editor";
     }
 };
 
@@ -261,7 +305,10 @@ class CSSHelper {
     private static instance: CSSHelper = new CSSHelper();
 
     /**
-     * Deprecated singleton, the class is now
+     * Deprecated singleton, the class is now static
+     * The only remaining part of the singleton is the instance
+     * which ensures that the constructor has been called and a new
+     * style tag has been injected into the HTML
      */
     private constructor () {
         CSSHelper.styleElement = document.createElement("style");
@@ -270,18 +317,20 @@ class CSSHelper {
     }
 
     /**
-     * Add a new css class with properties
+     * Inject CSS given an identifier and properties
+     * @param {string} identifier CSS identifier, e.g '#some-id' or 'a:hover'
+     * @param {CssProperties} properties CSS properties
      */
-    static injectClass(name: string, properties: CSSStringProperties): void {
+    static injectCss(identifier: string, properties: CssProperties): void {
         const cssTextPropertoes = CSSHelper.stringifyCSSProperties(properties);
-        CSSHelper.styleElement.innerHTML += ` .${name} { ${cssTextPropertoes} } `;
+        CSSHelper.styleElement.innerHTML += `${identifier} { ${cssTextPropertoes} } \n`;
     }
 
     /**
      * Convert a list of css properties to a string which is valid css
-     * @param {CSSStringProperties} property CSSproperties
+     * @param {CssProperties} property CSSproperties
      */
-    static stringifyCSSProperties(property: CSSStringProperties): string {
+    static stringifyCSSProperties(property: CssProperties): string {
         let cssString: string = "";
         Object.entries(property).forEach(([key, value]: [string, string]) => {
             if (value !== "") {
@@ -293,26 +342,36 @@ class CSSHelper {
 };
 
 /**
- * Create editor theme
+ * Class providing useful methods to work with the HTML DOM
  */
-let darkEditorTheme: EditorTheme = {
-    "background": "#202225",
-    "width": "826px",
-    "height": "300px",
-    "padding": "20px 30px 20px 30px",
-    "border-radius": "5px",
-    "cursor": "default",
-    "overflow": "auto",
-    "box-shadow": "0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19)",
-    "color": "#dcddde",
-    "outline": "none",
+class DOMHelper {
+    static HTMLElementFromString(html: string): HTMLElement {
+        const creationHelperElement = document.createElement("div");
+        creationHelperElement.innerHTML = html.trim();
+        if (creationHelperElement.firstChild && creationHelperElement.firstChild.nodeType === Node.ELEMENT_NODE) {
+            return creationHelperElement.firstChild as HTMLElement;
+        }
+        throw new Error("Failed to create element from html: " + html);
+    }
+};
+
+/**
+ * A collection of theme objects
+ */
+class Theme {
+    constructor (
+        public containerTheme: CssProperties = {},
+        public editorTheme: CssProperties = {},
+        public menuTheme: CssProperties = {},
+        public formatterTheme: CssIdentifiers = {},
+        public additionalIdentifiers: CssIdentifiers = {}) { }
 };
 
 /**
  * Create Markdown Theme
  */
-let darkMDTheme: MDTheme = {
-    "md-header-1": {
+let darkMDFormatterTheme: MDCSSClasses = {
+    ".md-header-1": {
         "margin": "24px 0 16px 0",
         "font-weight": "600",
         "line-height": "1.25",
@@ -320,7 +379,7 @@ let darkMDTheme: MDTheme = {
         "padding-bottom": ".3em",
         "border-bottom": "1px solid #eaecef",
     },
-    "md-header-2": {
+    ".md-header-2": {
         "margin": "24px 0 16px 0",
         "font-weight": "600",
         "line-height": "1.25",
@@ -328,67 +387,67 @@ let darkMDTheme: MDTheme = {
         "border-bottom": "1px solid #eaecef",
         "font-size": "1.5em",
     },
-    "md-header-3": {
+    ".md-header-3": {
         "margin": "24px 0 16px 0",
         "font-weight": "600",
         "line-height": "1.25",
         "font-size": "1.25em",
     },
-    "md-header-4": {
+    ".md-header-4": {
         "margin": "24px 0 16px 0",
         "font-weight": "600",
         "line-height": "1.25",
         "font-size": "1em",
     },
-    "md-header-5": {
+    ".md-header-5": {
         "margin": "24px 0 16px 0",
         "font-weight": "600",
         "line-height": "1.25",
         "font-size": ".875em",
     },
-    "md-header-6": {
+    ".md-header-6": {
         "margin": "24px 0 16px 0",
         "font-weight": "600",
         "line-height": "1.25",
         "font-size": ".85em",
     },
-    "md-italics": {
+    ".md-italics": {
         "font-style": "italic",
     },
-    "md-bold": {
+    ".md-bold": {
         "font-weight": "bold",
     },
-    "md-strikethrough": {
+    ".md-strikethrough": {
         "text-decoration": "line-through",
     },
-    "md-ordered-list": {
+    ".md-ordered-list": {
         "list-style-type": "decimal",
     },
-    "md-unordered-list": {
+    ".md-unordered-list": {
         "list-style-type": "circle",
     },
-    "md-link": {
+    ".md-link": {
         "text-decoration": "none",
         "color": "rgb(77, 172, 253)",
     },
-    "md-image": {
+    ".md-image": {
         "max-width": "100%",
     },
-    "md-inline-code": {
+    ".md-inline-code": {
         "font-family": "monospace",
         "padding": ".2em .4em",
         "font-size": "85%",
         "border-radius": "3px",
         "background-color": "rgba(220, 224, 228, 0.1) !important",
     },
-    "md-block-code": {
+    ".md-block-code": {
         "font-family": "monospace",
         "border-radius": "3px",
         "word-wrap": "normal",
         "padding": "16px",
         "background": "rgba(220, 224, 228, 0.1) !important",
     },
-    "md-table-header": {
+    ".md-table-header": {
         "line-height": "1.5",
         "border-spacing": "0",
         "border-collapse": "collapse",
@@ -397,7 +456,7 @@ let darkMDTheme: MDTheme = {
         "padding": "6px 13px",
         "border": "1px solid #dfe2e5",
     },
-    "md-table-cell": {
+    ".md-table-cell": {
         "line-height": "1.5",
         "border-spacing": "0",
         "border-collapse": "collapse",
@@ -405,13 +464,13 @@ let darkMDTheme: MDTheme = {
         "padding": "6px 13px",
         "border": "1px solid #dfe2e5",
     },
-    "md-quote": {
+    ".md-quote": {
         "border-spacing": "0",
         "border-collapse": "collapse",
         "padding": "6px 13px",
         "border-left": ".25em solid rgb(53, 59, 66)",
     },
-    "md-horizontal-line": {
+    ".md-horizontal-line": {
         "line-height": "1.5",
         "overflow": "hidden",
         "height": ".25em",
@@ -422,50 +481,112 @@ let darkMDTheme: MDTheme = {
 };
 
 /**
- * Get an anchor to the element-to-be-editor
- * and create an editor from it
+ * Create container theme
  */
-let editorContainer = document.getElementById("editor");
-if (editorContainer) {
-    const editor = new Editor(editorContainer as HTMLElement, MDFormatter, darkEditorTheme, darkMDTheme);
+let darkContainerTheme: ContainerTheme = {
+    "background": "#202225",
+    "width": "826px",
+    "height": "300px",
+    "border-radius": "5px",
+    "cursor": "default",
+    "box-shadow": "0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19)",
+    "color": "#dcddde",
+    "display": "flex",
+    "flex-direction": "row",
+    "resize": "both",
+    "overflow": "auto",
+};
+
+/**
+ * Create menu theme
+ */
+let darkMenuTheme: CssProperties = {
+    "border-right": "1px solid rgb(83, 79, 86)",
+    "margin": "20px 0px 20px 0px",
+    "padding": "15px 20px 0px 20px",
+};
+
+/**
+ * Create editor theme
+ */
+let darkEditorTheme: CssProperties = {
+    "flex": "1",
+    "outline": "none",
+    "padding-left": "20px",
+    "overflow": "auto",
+    "scrollbar-color": "red",
+    "padding": "20px 30px 20px 30px",
+    "margin": "10px 10px 10px 10px",
 }
+
+/**
+ * Add styling for the scrollbar
+ */
+let additionalTheme: CssIdentifiers = {
+    "<EDITOR>::-webkit-scrollbar": {
+        "width": "10px",
+    },
+    "<EDITOR>::-webkit-scrollbar-track": {
+        "background": "rgb(53, 59, 66)",
+        "border-radius": "4px",
+    },
+    "<EDITOR>::-webkit-scrollbar-thumb": {
+        "background": "rgb(83, 79, 86)",
+        "border-radius": "4px",
+    },
+    "<EDITOR>::-webkit-scrollbar-thumb:hover": {
+        "background": "rgb(93, 99, 106)",
+    },
+}
+
+/**
+ * Example usage
+ */
+let customTheme = new Theme(darkContainerTheme, darkEditorTheme, darkMenuTheme, darkMDFormatterTheme, additionalTheme);
+const editor = new Editor("editor", MDFormatter, customTheme);
 
 /**
  * Editor theme is a set of CSS properties
  * Editor Theme is directly applied as style to the editor
  */
-interface EditorTheme extends CSSStringProperties { }
-
-/**
- * Generic formatter theme
- */
-interface FormatterTheme { }
+interface ContainerTheme extends CssProperties { }
 
 /**
  * Markdown theme where the field names represent class names
  * and the values represent CSS class properties
  */
-interface MDTheme extends FormatterTheme {
-    "md-header-1"?: CSSStringProperties;
-    "md-header-2"?: CSSStringProperties;
-    "md-header-3"?: CSSStringProperties;
-    "md-header-4"?: CSSStringProperties;
-    "md-header-5"?: CSSStringProperties;
-    "md-header-6"?: CSSStringProperties;
-    "md-italics"?: CSSStringProperties;
-    "md-bold"?: CSSStringProperties;
-    "md-strikethrough"?: CSSStringProperties;
-    "md-ordered-list"?: CSSStringProperties;
-    "md-unordered-list"?: CSSStringProperties;
-    "md-link"?: CSSStringProperties;
-    "md-image"?: CSSStringProperties;
-    "md-inline-code"?: CSSStringProperties;
-    "md-block-code"?: CSSStringProperties;
-    "md-table-header"?: CSSStringProperties;
-    "md-table-cell"?: CSSStringProperties;
-    "md-quote"?: CSSStringProperties;
-    "md-horizontal-line"?: CSSStringProperties;
+interface MDCSSClasses extends CssIdentifiers {
+    ".md-header-1"?: CssProperties;
+    ".md-header-2"?: CssProperties;
+    ".md-header-3"?: CssProperties;
+    ".md-header-4"?: CssProperties;
+    ".md-header-5"?: CssProperties;
+    ".md-header-6"?: CssProperties;
+    ".md-italics"?: CssProperties;
+    ".md-bold"?: CssProperties;
+    ".md-strikethrough"?: CssProperties;
+    ".md-ordered-list"?: CssProperties;
+    ".md-unordered-list"?: CssProperties;
+    ".md-link"?: CssProperties;
+    ".md-image"?: CssProperties;
+    ".md-inline-code"?: CssProperties;
+    ".md-block-code"?: CssProperties;
+    ".md-table-header"?: CssProperties;
+    ".md-table-cell"?: CssProperties;
+    ".md-quote"?: CssProperties;
+    ".md-horizontal-line"?: CssProperties;
 }
+
+/**
+ * Generic formatter theme
+ */
+interface CssIdentifiers { }
+
+/**
+ * CSS properties named as they are usually typed in CSS files
+ * @example border-radius, color, box-shadow
+ */
+interface CssProperties extends StandardPropertiesHyphen, SvgPropertiesHyphen { }
 
 /**
  * CSS properties named as DOM object fields.
@@ -473,12 +594,6 @@ interface MDTheme extends FormatterTheme {
  * @example borderRadius, color, boxShadow
  */
 interface CSSObjectProperties extends StandardProperties, SvgProperties { }
-
-/**
- * CSS properties named as they are usually typed in CSS files
- * @example border-radius, color, box-shadow
- */
-interface CSSStringProperties extends StandardPropertiesHyphen, SvgPropertiesHyphen { }
 
 /**
  * Automatically generated interfaces with lists of CSS properties
