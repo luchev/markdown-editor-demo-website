@@ -6,21 +6,15 @@
  */
 abstract class Formatter {
     /**
-     * The constructor only calls the init method,
-     * which is responsible for starting the formatting engine
-     * @param {HTMLElement} container HTML editable div, used as editor
-     */
-    constructor (container: HTMLElement) {
-        this.init(container);
-    }
-
-    /**
-     * Called only once by the constructor
      * This method should initialize all the event handles and methods
      * which are responsible for formatting the content of the container
      * @param {HTMLElement} container HTML editable div used as editor
      */
     abstract init(container: HTMLElement): void;
+
+    getSettings(): HTMLElement[] {
+        return [];
+    }
 };
 
 /**
@@ -51,6 +45,13 @@ class MDFormatter extends Formatter {
             // attributes: true,
         }
         observer.observe(editor, observerConfig);
+    }
+
+    /**
+     * Get list of property elements to put in the settings menu in the editor
+     */
+    getSettings(): HTMLElement[] {
+        return [];
     }
 
     /**
@@ -171,7 +172,7 @@ class MDFormatter extends Formatter {
 /**
  * Abstraction of the editor as a collection of container, formatter, settings and themes
  */
-class Editor<FORMATTER extends Formatter> {
+class Editor {
     /**
      * The container for the menu and the editor
      */
@@ -188,59 +189,51 @@ class Editor<FORMATTER extends Formatter> {
     private menu: HTMLElement = document.createElement("div");
 
     /**
+     * The settings drop down menu
+     */
+    private settingsMenu: HTMLElement = document.createElement("div");
+
+    /**
      * @param {string} containerId HTML element id which will become an ediable div
      * @param {Formatter} formatter Formatter which determines how the content is stylized
      * @param {Theme} theme Collection of theme objects
      */
-    constructor (private containerId: string,
-        formatter: new (container: HTMLElement) => FORMATTER,
-        private theme: Theme) {
+    constructor(private containerId: string, formatter: Formatter, private theme: Theme) {
 
         this.initializeContainer(containerId);
         this.applyTheme();
-        this.initializeFormatter(formatter);
-    }
 
-    private initializeFormatter(formatter: new (container: HTMLElement) => FORMATTER) {
-        const f = new formatter(this.editor);
+        formatter.init(this.editor);
     }
 
     /**
-     * Inject the CSS classes into the HTML so the formatter can
+     * Inject the CSS classes/IDs into the HTML so the formatter can
      * use them when stylizing the content
      */
-    private injectFormatterTheme(): void {
-        Object.entries(this.theme.formatterTheme).forEach(([identifier, properties]: [string, CssProperties]) => {
-            CSSHelper.injectCss(identifier, properties);
-        });
+    private injectAdditionalCssIdentifiers(): void {
+        if (this.theme.additionalCssIdentifiers) {
+            Object.entries(this.theme.additionalCssIdentifiers).forEach(([identifier, properties]: [string, CssProperties]) => {
+                CSSHelper.injectCss(identifier, properties);
+            });
+        }
     }
 
     /**
-     * Inject the additional CSS classes into the HTML
+     * Inject the scrollbar classes into the HTML
      */
-    private injectAdditionalTheme(): void {
-        Object.entries(this.theme.additionalIdentifiers).forEach(([identifier, properties]: [string, CssProperties]) => {
-            CSSHelper.injectCss(this.interpolateCssIdentifier(identifier), properties);
-        });
-    }
-
-    /**
-     * Replace special keywords in CSS identifiers with identifiers,
-     * which are used in the current editor.
-     * This allows users to write custom CSS using identifiers to edit this editor
-     * TODO proper description
-     */
-    private interpolateCssIdentifier(identifier: string) {
-        return identifier.replace(/<EDITOR>/g, "." + this.getEditorCssClass())
-            .replace(/<CONTAINER>/g, "." + this.getContainerCssClass())
-            .replace(/<MENU>/g, "." + this.getMenuCssClass());
+    private injectScrollbarTheme(): void {
+        if (this.theme.scrollbarTheme) {
+            Object.entries(this.theme.scrollbarTheme).forEach(([identifier, properties]: [string, CssProperties]) => {
+                CSSHelper.injectCss("#" + this.getEditorId() + "::" + identifier, properties);
+            });
+        }
     }
 
     /**
      * Create the editor content container as an editable div
      */
+    // Make sure the container is a div
     private initializeContainer(futureContainerId: string): void {
-        // Make sure the container is a div
         const futureContainer = document.getElementById(futureContainerId);
         if (!futureContainer) {
             throw new Error("Cannot find element with id " + futureContainerId);
@@ -248,44 +241,127 @@ class Editor<FORMATTER extends Formatter> {
         const futureContainerParent = futureContainer.parentElement;
 
         this.container.id = this.containerId;
-        this.container.className = this.getContainerCssClass();
+        this.container.id = this.getContainerId();
 
         if (futureContainerParent) {
             futureContainerParent.replaceChild(this.container, futureContainer);
         }
 
         this.container.appendChild(this.menu);
-        this.menu.className = this.getMenuCssClass();
+        this.menu.id = this.getMenuId();
+
         // Add settings button
         const settingsSvg = DOMHelper.HTMLElementFromString("<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'> <circle cx='12' cy='12' r='3' /> <path d='M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z' /></svg>");
         this.menu.appendChild(settingsSvg);
+        settingsSvg.addEventListener('click', this.settingsClick);
 
         this.container.appendChild(this.editor);
-        this.editor.className = this.getEditorCssClass();
+        this.editor.id = this.getEditorId();
         this.editor.contentEditable = "true";
+    }
+
+    private settingsClick(event: MouseEvent): void {
+        if (event.currentTarget instanceof Element) {
+            const target = event.currentTarget as Element;
+            if (target.parentElement) {
+                if (target.parentElement.style.width === "") {
+                    target.parentElement.style.width = "250px";
+                } else {
+                    target.parentElement.style.width = "";
+                }
+            }
+        }
+        //  = "200px";
     }
 
     /**
      * Change the editor theme by changint its style property
      */
     private applyTheme(): void {
-        CSSHelper.injectCss("." + this.getContainerCssClass(), this.theme.containerTheme);
-        CSSHelper.injectCss("." + this.getMenuCssClass(), this.theme.menuTheme);
-        CSSHelper.injectCss("." + this.getEditorCssClass(), this.theme.editorTheme);
+        CSSHelper.injectCss(this.getMenuIdentifier(), this.getMenuBaseCssProperties());
+        CSSHelper.injectCss(this.getEditorIdentifier(), this.getEditorBaseCssProperties());
 
-        this.injectFormatterTheme();
-        this.injectAdditionalTheme();
+        this.injectContainerTheme();
+        this.injectAdditionalCssIdentifiers();
+        this.injectScrollbarTheme();
     }
 
-    private getContainerCssClass() {
+    /**
+     * Inject the additional CSS classes into the HTML
+     */
+    private injectContainerTheme(): void {
+        let properties: CssProperties;
+        if (this.theme.editorTheme) {
+            properties = { ...this.getContainerBaseCssProperties(), ...this.theme.editorTheme };
+        } else {
+            properties = this.getContainerBaseCssProperties();
+        }
+
+        CSSHelper.injectCss(this.getContainerIdentifier(), properties);
+    }
+
+    /**
+     * Hardcoded CSS for the Container
+     */
+    private getContainerBaseCssProperties(): CssProperties {
+        return {
+            "cursor": "default",
+            "display": "flex",
+            "flex-direction": "row",
+            "resize": "both",
+            "overflow": "auto",
+        };
+    }
+
+    /**
+     * Hardcoded CSS for the menu
+     */
+    private getMenuBaseCssProperties(): CssProperties {
+        return {
+            "border-right": "1px solid rgb(83, 79, 86)",
+            "margin": "20px 0px 20px 0px",
+            "padding": "15px 20px 15px 20px",
+            "display": "flex",
+            "flex-direction": "column",
+        };
+    }
+
+    /**
+     * Hardcoded CSS for the editor
+     */
+    private getEditorBaseCssProperties(): CssProperties {
+        return {
+            "flex": "1",
+            "outline": "none",
+            "overflow": "auto",
+            "scrollbar-color": "red",
+            "padding": "20px 30px 20px 30px",
+            "margin": "10px 10px 10px 10px",
+        };
+    }
+
+    private getContainerIdentifier() {
+        return "#" + this.getContainerId();
+    }
+
+
+    private getMenuIdentifier() {
+        return "#" + this.getMenuId();
+    }
+
+    private getEditorIdentifier() {
+        return "#" + this.getEditorId();
+    }
+
+    private getContainerId() {
         return this.containerId + "-container";
     }
 
-    private getMenuCssClass() {
+    private getMenuId() {
         return this.containerId + "-menu";
     }
 
-    private getEditorCssClass() {
+    private getEditorId() {
         return this.containerId + "-editor";
     }
 };
@@ -310,7 +386,7 @@ class CSSHelper {
      * which ensures that the constructor has been called and a new
      * style tag has been injected into the HTML
      */
-    private constructor () {
+    private constructor() {
         CSSHelper.styleElement = document.createElement("style");
         CSSHelper.styleElement.type = "text/css";
         document.getElementsByTagName("head")[0].appendChild(CSSHelper.styleElement);
@@ -353,18 +429,6 @@ class DOMHelper {
         }
         throw new Error("Failed to create element from html: " + html);
     }
-};
-
-/**
- * A collection of theme objects
- */
-class Theme {
-    constructor (
-        public containerTheme: CssProperties = {},
-        public editorTheme: CssProperties = {},
-        public menuTheme: CssProperties = {},
-        public formatterTheme: CssIdentifiers = {},
-        public additionalIdentifiers: CssIdentifiers = {}) { }
 };
 
 /**
@@ -480,61 +544,53 @@ let darkMDFormatterTheme: MDCSSClasses = {
     },
 };
 
+
 /**
- * Create container theme
+ * A collection of theme objects
  */
-let darkContainerTheme: ContainerTheme = {
-    "background": "#202225",
-    "width": "826px",
-    "height": "300px",
-    "border-radius": "5px",
-    "cursor": "default",
-    "box-shadow": "0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19)",
-    "color": "#dcddde",
-    "display": "flex",
-    "flex-direction": "row",
-    "resize": "both",
-    "overflow": "auto",
+interface Theme {
+    editorTheme?: EditorTheme;
+    scrollbarTheme?: ScrollbarTheme;
+    additionalCssIdentifiers?: CssIdentifiers;
 };
 
 /**
- * Create menu theme
+ * Theme for the scrollbar
  */
-let darkMenuTheme: CssProperties = {
-    "border-right": "1px solid rgb(83, 79, 86)",
-    "margin": "20px 0px 20px 0px",
-    "padding": "15px 20px 0px 20px",
+interface ScrollbarTheme {
+    "-webkit-scrollbar"?: CssProperties;
+    "-webkit-scrollbar-track"?: CssProperties;
+    "-webkit-scrollbar-thumb"?: CssProperties;
+    "-webkit-scrollbar-thumb:hover"?: CssProperties;
 };
 
 /**
- * Create editor theme
+ * Theme for the editor as a whole
  */
-let darkEditorTheme: CssProperties = {
-    "flex": "1",
-    "outline": "none",
-    "padding-left": "20px",
-    "overflow": "auto",
-    "scrollbar-color": "red",
-    "padding": "20px 30px 20px 30px",
-    "margin": "10px 10px 10px 10px",
+interface EditorTheme {
+    "background"?: string;
+    "color"?: string;
+    "width"?: string;
+    "height"?: string;
+    "box-shadow"?: string;
 }
 
 /**
- * Add styling for the scrollbar
+ * Dark theme for the scrollbar
  */
-let additionalTheme: CssIdentifiers = {
-    "<EDITOR>::-webkit-scrollbar": {
+let darkScrollbar: ScrollbarTheme = {
+    "-webkit-scrollbar": {
         "width": "10px",
     },
-    "<EDITOR>::-webkit-scrollbar-track": {
+    "-webkit-scrollbar-track": {
         "background": "rgb(53, 59, 66)",
         "border-radius": "4px",
     },
-    "<EDITOR>::-webkit-scrollbar-thumb": {
+    "-webkit-scrollbar-thumb": {
         "background": "rgb(83, 79, 86)",
         "border-radius": "4px",
     },
-    "<EDITOR>::-webkit-scrollbar-thumb:hover": {
+    "-webkit-scrollbar-thumb:hover": {
         "background": "rgb(93, 99, 106)",
     },
 }
@@ -542,8 +598,17 @@ let additionalTheme: CssIdentifiers = {
 /**
  * Example usage
  */
-let customTheme = new Theme(darkContainerTheme, darkEditorTheme, darkMenuTheme, darkMDFormatterTheme, additionalTheme);
-const editor = new Editor("editor", MDFormatter, customTheme);
+let customTheme: Theme = {
+    scrollbarTheme: darkScrollbar,
+    additionalCssIdentifiers: darkMDFormatterTheme,
+    editorTheme: {
+        "background": "#202225",
+        "color": "#dcddde",
+        "height": "50%",
+        "box-shadow": "0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19)"
+    }
+};
+const editor = new Editor("editor", new MDFormatter(), customTheme);
 
 /**
  * Editor theme is a set of CSS properties
