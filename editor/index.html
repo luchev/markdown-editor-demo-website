@@ -3,12 +3,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MD editor</title>
+    <style>
+        .settings-container {
+            width: 300px;
+            height: 300px;
+            overflow: auto;
+            background: lightslategray;
+            border-radius: 5px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .settings-item {
+            padding: 10px;
+            background-color: lightgray;
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+        }
+
+    </style>
 </head>
 <body>
     <div id="editor"></div>
-
-    <script src="editor.js"></script>
-    <script>
+    <script defer src="editor.js"></script>
+    <script defer>
         // Initialize editor
     </script>
 </body>

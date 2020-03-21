@@ -30,11 +30,17 @@ class MDFormatter extends Formatter {
     static startLineRegex: [string, RegExp][] = [];
 
     /**
+     * Hook to the editor div
+     */
+    private editor: HTMLElement | null = null;
+
+    /**
      * Initialize the mutation observer, which monitors changes happening
      * inside the container
      * @param {HTMLElement} editor HTML editable div used as editor
      */
     init(editor: HTMLElement): void {
+        this.editor = editor;
         this.initRegex();
 
         const observer = new MutationObserver((mutations) => MDFormatter.handleMutations(editor, mutations));
@@ -51,7 +57,46 @@ class MDFormatter extends Formatter {
      * Get list of property elements to put in the settings menu in the editor
      */
     getSettings(): HTMLElement[] {
-        return [];
+        const settings = [
+            `<div onclick="MDFormatter.toggleDynamicRender(event)" style='display: flex; flex-direction: row; justify-items: center; justify-content: space-between; margin-top: 20px;'>
+                <div style='display: flex;'>
+                    Dynamic render
+                </div>
+                <div style='display: flex;'>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                    </svg>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
+                        stroke-linecap="round" stroke-linejoin="round" display="none">
+                        <polyline points="9 11 12 14 22 4" />
+                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+                    </svg>
+                </div>
+            </div>`
+        ];
+
+        return settings.map((setting) => DOMHelper.HTMLElementFromString(setting));
+    }
+
+    /**
+     * Method to handle the click event on the setting Toggle Dynamic Renderer
+     * @param event Click event to toggle Dynamic Renderer
+     */
+    static toggleDynamicRender(event: MouseEvent) {
+        if (event.currentTarget instanceof Element) {
+            const settingsItem = event.currentTarget as Element;
+            const svgs = settingsItem?.children[1].children;
+            for (const svg of svgs) {
+                if (svg.hasAttribute("display")) {
+                    svg.removeAttribute("display");
+                    // TODO
+                } else {
+                    svg.setAttribute("display", "none");
+                    // TODO
+                }
+            }
+        }
     }
 
     /**
@@ -189,21 +234,15 @@ class Editor {
     private menu: HTMLElement = document.createElement("div");
 
     /**
-     * The settings drop down menu
-     */
-    private settingsMenu: HTMLElement = document.createElement("div");
-
-    /**
      * @param {string} containerId HTML element id which will become an ediable div
      * @param {Formatter} formatter Formatter which determines how the content is stylized
      * @param {Theme} theme Collection of theme objects
      */
-    constructor(private containerId: string, formatter: Formatter, private theme: Theme) {
-
+    constructor(private containerId: string, private formatter: Formatter, private theme: Theme) {
         this.initializeContainer(containerId);
         this.applyTheme();
 
-        formatter.init(this.editor);
+        this.formatter.init(this.editor);
     }
 
     /**
@@ -251,27 +290,56 @@ class Editor {
         this.menu.id = this.getMenuId();
 
         // Add settings button
-        const settingsSvg = DOMHelper.HTMLElementFromString("<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'> <circle cx='12' cy='12' r='3' /> <path d='M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z' /></svg>");
+        const settingsSvg = DOMHelper.HTMLElementFromString(`
+        <div style='display: flex; justify-content: flex-end;'>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+            </svg>
+            <svg display='none' width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6" />
+            </svg>
+        </div>`);
         this.menu.appendChild(settingsSvg);
-        settingsSvg.addEventListener('click', this.settingsClick);
+        settingsSvg.addEventListener('click', (event) => {
+            this.settingsClick(event, this.menu);
+        });
 
         this.container.appendChild(this.editor);
         this.editor.id = this.getEditorId();
         this.editor.contentEditable = "true";
+
+
+        const settingsContainer = document.createElement('div');
+        this.menu.appendChild(settingsContainer);
+        settingsContainer.style.display = 'none';
+        settingsContainer.style.flexDirection = 'column';
+        this.formatter.getSettings().forEach((element) => settingsContainer.appendChild(element));
     }
 
-    private settingsClick(event: MouseEvent): void {
+    private settingsClick(event: MouseEvent, menu: HTMLElement): void {
         if (event.currentTarget instanceof Element) {
             const target = event.currentTarget as Element;
             if (target.parentElement) {
+                // Switch arrow direction
+                const svgs = target.children;
+                for (const svg of svgs) {
+                    if (svg.hasAttribute("display")) {
+                        svg.removeAttribute("display");
+                    } else {
+                        svg.setAttribute("display", "none");
+                    }
+                }
+
+                // Resize menu
                 if (target.parentElement.style.width === "") {
                     target.parentElement.style.width = "250px";
+                    (menu.children[1] as HTMLElement).style.display = 'flex';
                 } else {
                     target.parentElement.style.width = "";
+                    (menu.children[1] as HTMLElement).style.display = 'none';
                 }
             }
         }
-        //  = "200px";
     }
 
     /**
