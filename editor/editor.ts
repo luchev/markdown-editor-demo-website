@@ -12,10 +12,8 @@ abstract class Formatter {
      */
     abstract init(container: HTMLElement): void;
 
-    getSettings(): HTMLElement[] {
-        return [];
-    }
-};
+    abstract getSettings(): HTMLElement[];
+}
 
 /**
  * Markdown formatter which is based on the generic Formatter class
@@ -32,7 +30,7 @@ class MDFormatter extends Formatter {
     /**
      * Hook to the editor div
      */
-    private editor: HTMLElement | null = null;
+    private editor: HTMLElement = document.createElement('invalid');
 
     /**
      * Initialize the mutation observer, which monitors changes happening
@@ -43,7 +41,7 @@ class MDFormatter extends Formatter {
         this.editor = editor;
         this.initRegex();
 
-        const observer = new MutationObserver((mutations) => MDFormatter.handleMutations(editor, mutations));
+        const observer = new MutationObserver((mutations) => this.handleMutations(mutations));
         const observerConfig = {
             childList: true,
             subtree: true, // observe also grandchildren
@@ -57,8 +55,8 @@ class MDFormatter extends Formatter {
      * Get list of property elements to put in the settings menu in the editor
      */
     getSettings(): HTMLElement[] {
-        const settings = [
-            `<div onclick="MDFormatter.toggleDynamicRender(event)" style='display: flex; flex-direction: row; justify-items: center; justify-content: space-between; margin-top: 20px;'>
+        const settingsHtml = [
+            `<div data-setting="dynamic-render" style='display: flex; flex-direction: row; justify-items: center; justify-content: space-between; margin-top: 20px;'>
                 <div style='display: flex;'>
                     Dynamic render
                 </div>
@@ -73,17 +71,28 @@ class MDFormatter extends Formatter {
                         <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
                     </svg>
                 </div>
-            </div>`
+            </div>`,
         ];
 
-        return settings.map((setting) => DOMHelper.HTMLElementFromString(setting));
+        const settingsElements = settingsHtml.map((setting) => DOMHelper.HTMLElementFromString(setting));
+
+        // TODO convert the following foreach to event delegation
+        settingsElements.forEach(element => {
+            if (element.hasAttribute('data-setting')) {
+                if (element.getAttribute('data-setting') === 'dynamic-render') {
+                    element.addEventListener('click', (event) => this.toggleDynamicRender(event));
+                }
+            }
+        });
+
+        return settingsElements;
     }
 
     /**
      * Method to handle the click event on the setting Toggle Dynamic Renderer
      * @param event Click event to toggle Dynamic Renderer
      */
-    static toggleDynamicRender(event: MouseEvent) {
+    private toggleDynamicRender(event: MouseEvent) {
         if (event.currentTarget instanceof Element) {
             const settingsItem = event.currentTarget as Element;
             const svgs = settingsItem?.children[1].children;
@@ -121,9 +130,9 @@ class MDFormatter extends Formatter {
      * @param {HTMLElement} container HTML editable div used as editor
      * @param {MutationRecord[]} mutations array of mutations
      */
-    private static handleMutations(container: HTMLElement, mutations: MutationRecord[]): void {
+    private handleMutations(mutations: MutationRecord[]): void {
         for (const mutation of mutations) {
-            MDFormatter.handleMutation(container, mutation);
+            this.handleMutation(mutation);
         }
     }
 
@@ -132,13 +141,13 @@ class MDFormatter extends Formatter {
      * @param {HTMLElement} container HTML editable div used as editor
      * @param {MutationRecord} mutations The mutation that happened
      */
-    private static handleMutation(container: HTMLElement, mutation: MutationRecord): void {
+    private handleMutation(mutation: MutationRecord): void {
         if (mutation.type === "childList") {
-            MDFormatter.handleChildListMutation(container, mutation);
+            this.handleChildListMutation(mutation);
         }
 
         if (mutation.type === "characterData") {
-            MDFormatter.handleCharacterDataMutation(container, mutation);
+            this.handleCharacterDataMutation(mutation);
         }
     }
 
@@ -147,22 +156,22 @@ class MDFormatter extends Formatter {
      * @param {HTMLElement} editor HTML editable div used as editor
      * @param {MutationRecord} mutation The mutation that happened
      */
-    private static handleChildListMutation(editor: HTMLElement, mutation: MutationRecord): void {
+    private handleChildListMutation(mutation: MutationRecord): void {
         if (mutation.addedNodes.length > 0) {
             const addedNode: Node = mutation.addedNodes[0];
 
             // Add first div if the editor is empty and this is the first addedd #text
             // The first text written will not be in a separate div, so create a div for it
             // and put the text inside
-            if (addedNode.nodeName === "#text" && addedNode.parentElement === editor) {
+            if (addedNode.nodeName === "#text" && addedNode.parentElement === this.editor) {
                 const newDiv = document.createElement("div");
-                editor.insertBefore(newDiv, addedNode.nextSibling);
+                this.editor.insertBefore(newDiv, addedNode.nextSibling);
                 newDiv.appendChild(addedNode);
 
                 // Move cursor to end of line
                 const range: Range = document.createRange();
                 const sel: Selection | null = window.getSelection();
-                range.setStart(editor.childNodes[0], newDiv.innerText.length);
+                range.setStart(this.editor.childNodes[0], newDiv.innerText.length);
                 range.collapse(true);
                 if (sel) {
                     sel.removeAllRanges();
@@ -171,7 +180,7 @@ class MDFormatter extends Formatter {
             }
 
             // If added node is a div, clear all classes
-            if (addedNode.nodeName === "DIV" && mutation.target !== editor) {
+            if (addedNode.nodeName === "DIV" && mutation.target !== this.editor) {
                 if (addedNode.nodeType === Node.ELEMENT_NODE) {
                     const elementFromNode: HTMLElement = addedNode as HTMLElement;
                     while (elementFromNode.hasAttributes()) {
@@ -183,13 +192,13 @@ class MDFormatter extends Formatter {
 
 
         // Check if the element is empty and clear its classes
-        if (mutation.target.nodeType === Node.ELEMENT_NODE && mutation.target !== editor) {
+        if (mutation.target.nodeType === Node.ELEMENT_NODE && mutation.target !== this.editor) {
             const elementFromNode = mutation.target as HTMLElement;
 
             if (elementFromNode) {
                 const spacesRegex = RegExp("\\s*");
                 if (spacesRegex.test(elementFromNode.innerText)) {
-                    elementFromNode.className = "";
+                    elementFromNode.className = '';
                 }
             }
         }
@@ -200,19 +209,35 @@ class MDFormatter extends Formatter {
      * @param {HTMLElement} container HTML editable div used as editor
      * @param {MutationRecord} mutation The mutation that happened
      */
-    private static handleCharacterDataMutation(container: HTMLElement, mutation: MutationRecord): void {
-        const parent = mutation.target.parentElement;
+    private handleCharacterDataMutation(mutation: MutationRecord): void {
+        const div = mutation.target.parentElement;
 
-        if (parent) {
-            parent.className = "";
-            for (const [className, regex] of MDFormatter.startLineRegex) {
-                if (regex.test(parent.innerText)) {
-                    parent.className = className;
-                }
+        if (div) {
+            div.className = "";
+            this.applyFormatting(div);
+        }
+    }
+
+    /**
+     * Add specific MD formatting to a single element(paragraph)
+     * @param div the element to apply specific formatting
+     */
+    private applyFormatting(div: HTMLElement) {
+        for (const [className, regex] of MDFormatter.startLineRegex) {
+            if (regex.test(div.innerText)) {
+                div.className = className;
             }
         }
     }
-};
+
+    /**
+     * Clear MD formatting from a single element(paragraph)
+     * @param div the element to apply specific formatting
+     */
+    private clearFormatting(div: HTMLElement) {
+        div.className = '';
+    }
+}
 
 /**
  * Abstraction of the editor as a collection of container, formatter, settings and themes
@@ -432,7 +457,7 @@ class Editor {
     private getEditorId() {
         return this.containerId + "-editor";
     }
-};
+}
 
 /**
  * Add methods to work with CSS like injecting classes and
@@ -445,6 +470,7 @@ class CSSHelper {
     private static styleElement: HTMLStyleElement;
     /**
      * The instance is used only to initialize the class once
+     * to make sure later on there is a style element which can be edited
      */
     private static instance: CSSHelper = new CSSHelper();
 
@@ -483,7 +509,7 @@ class CSSHelper {
         });
         return cssString;
     }
-};
+}
 
 /**
  * Class providing useful methods to work with the HTML DOM
@@ -497,7 +523,7 @@ class DOMHelper {
         }
         throw new Error("Failed to create element from html: " + html);
     }
-};
+}
 
 /**
  * Create Markdown Theme
@@ -610,7 +636,7 @@ let darkMDFormatterTheme: MDCSSClasses = {
         "margin": "24px 0",
         "background": "white",
     },
-};
+}
 
 
 /**
@@ -620,7 +646,7 @@ interface Theme {
     editorTheme?: EditorTheme;
     scrollbarTheme?: ScrollbarTheme;
     additionalCssIdentifiers?: CssIdentifiers;
-};
+}
 
 /**
  * Theme for the scrollbar
@@ -630,7 +656,7 @@ interface ScrollbarTheme {
     "-webkit-scrollbar-track"?: CssProperties;
     "-webkit-scrollbar-thumb"?: CssProperties;
     "-webkit-scrollbar-thumb:hover"?: CssProperties;
-};
+}
 
 /**
  * Theme for the editor as a whole
@@ -675,7 +701,7 @@ let customTheme: Theme = {
         "height": "50%",
         "box-shadow": "0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19)"
     }
-};
+}
 const editor = new Editor("editor", new MDFormatter(), customTheme);
 
 /**
