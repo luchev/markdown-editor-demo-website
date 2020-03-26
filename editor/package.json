@@ -1,0 +1,24 @@
+{
+  "name": "md-editor",
+  "version": "1.0.0",
+  "description": "Online Markdown Editor",
+  "main": "editor.js",
+  "directories": {
+    "example": "examples"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "lite-server"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "lite-server": "^2.5.4"
+  },
+  "dependencies": {
+    "@babel/core": "^7.9.0",
+    "@babel/node": "^7.8.7",
+    "babel": "^6.23.0",
+    "csstype": "^2.6.9"
+  }
+}

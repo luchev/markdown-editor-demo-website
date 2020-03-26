@@ -1,197 +1,63 @@
+/**
+ * Add methods to work with CSS like injecting classes and
+ * converting CSS properties to string which looks like css
+ */
+class CssHelper {
+    /**
+     * Deprecated singleton, the class is now static
+     * The only remaining part of the singleton is the instance
+     * which ensures that the constructor has been called and a new
+     * style tag has been injected into the HTML
+     */
+    constructor() {
+        CssHelper.styleElement = document.createElement("style");
+        CssHelper.styleElement.type = "text/css";
+        document.getElementsByTagName("head")[0].appendChild(CssHelper.styleElement);
+    }
+    /**
+     * Inject CSS given an identifier and properties
+     * @param {string} identifier CSS identifier, e.g '#some-id' or 'a:hover'
+     * @param {PropertiesHyphen} properties CSS properties
+     */
+    static injectCss(identifier, properties) {
+        const cssTextPropertoes = CssHelper.stringifyCSSProperties(properties);
+        CssHelper.styleElement.innerHTML += `${identifier} { ${cssTextPropertoes} } \n`;
+    }
+    /**
+     * Convert a list of css properties to a string which is valid css
+     * @param {PropertiesHyphen} property CSS properties
+     */
+    static stringifyCSSProperties(property) {
+        let cssString = "";
+        Object.entries(property).forEach(([key, value]) => {
+            if (value !== "") {
+                cssString += `${key}: ${value}; `;
+            }
+        });
+        return cssString;
+    }
+}
+/**
+ * The instance is used only to initialize the class once
+ * to make sure later on there is a style element which can be edited
+ */
+CssHelper.instance = new CssHelper();
+"use strict";
 "use strict";
 /**
- * ! This is a base class, which must be extended for every different formatter
- * Base class for formatter logic used in the editor
- * To customize the formatting rules inherit this clas and
- * override the init method
+ * Class providing useful methods to work with the HTML DOM
  */
-class Formatter {
-    getSettings() {
-        return [];
+class DOMHelper {
+    static HTMLElementFromString(html) {
+        const creationHelperElement = document.createElement("div");
+        creationHelperElement.innerHTML = html.trim();
+        if (creationHelperElement.firstChild && creationHelperElement.firstChild.nodeType === Node.ELEMENT_NODE) {
+            return creationHelperElement.firstChild;
+        }
+        throw new Error("Failed to create element from html: " + html);
     }
 }
-;
-/**
- * Markdown formatter which is based on the generic Formatter class
- * This formatter uses common Markdown syntax to
- */
-class MDFormatter extends Formatter {
-    constructor() {
-        super(...arguments);
-        /**
-         * Hook to the editor div
-         */
-        this.editor = null;
-    }
-    /**
-     * Initialize the mutation observer, which monitors changes happening
-     * inside the container
-     * @param {HTMLElement} editor HTML editable div used as editor
-     */
-    init(editor) {
-        this.editor = editor;
-        this.initRegex();
-        const observer = new MutationObserver((mutations) => MDFormatter.handleMutations(editor, mutations));
-        const observerConfig = {
-            childList: true,
-            subtree: true,
-            characterData: true,
-        };
-        observer.observe(editor, observerConfig);
-    }
-    /**
-     * Get list of property elements to put in the settings menu in the editor
-     */
-    getSettings() {
-        const settings = [
-            `<div onclick="MDFormatter.toggleDynamicRender(event)" style='display: flex; flex-direction: row; justify-items: center; justify-content: space-between; margin-top: 20px;'>
-                <div style='display: flex;'>
-                    Dynamic render
-                </div>
-                <div style='display: flex;'>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                    </svg>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
-                        stroke-linecap="round" stroke-linejoin="round" display="none">
-                        <polyline points="9 11 12 14 22 4" />
-                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
-                    </svg>
-                </div>
-            </div>`
-        ];
-        return settings.map((setting) => DOMHelper.HTMLElementFromString(setting));
-    }
-    /**
-     * Method to handle the click event on the setting Toggle Dynamic Renderer
-     * @param event Click event to toggle Dynamic Renderer
-     */
-    static toggleDynamicRender(event) {
-        if (event.currentTarget instanceof Element) {
-            const settingsItem = event.currentTarget;
-            const svgs = settingsItem?.children[1].children;
-            for (const svg of svgs) {
-                if (svg.hasAttribute("display")) {
-                    svg.removeAttribute("display");
-                    // TODO
-                }
-                else {
-                    svg.setAttribute("display", "none");
-                    // TODO
-                }
-            }
-        }
-    }
-    /**
-     * Initialize regexes for matching markdown formatting strings
-     * at the start of the line
-     * e.g headers # and ###
-     */
-    initRegex() {
-        if (MDFormatter.startLineRegex.length === 0) {
-            MDFormatter.startLineRegex.push(["md-header-1", RegExp("^#{1}\\s")]);
-            MDFormatter.startLineRegex.push(["md-header-2", RegExp("^#{2}\\s")]);
-            MDFormatter.startLineRegex.push(["md-header-3", RegExp("^#{3}\\s")]);
-            MDFormatter.startLineRegex.push(["md-header-4", RegExp("^#{4}\\s")]);
-            MDFormatter.startLineRegex.push(["md-header-5", RegExp("^#{5}\\s")]);
-            MDFormatter.startLineRegex.push(["md-header-6", RegExp("^#{6}\\s")]);
-            MDFormatter.startLineRegex.push(["md-quote", RegExp("^>\\s")]);
-        }
-    }
-    /**
-     * Handle array of Mutations
-     * @param {HTMLElement} container HTML editable div used as editor
-     * @param {MutationRecord[]} mutations array of mutations
-     */
-    static handleMutations(container, mutations) {
-        for (const mutation of mutations) {
-            MDFormatter.handleMutation(container, mutation);
-        }
-    }
-    /**
-     * Handle a single mutation by calling the right method depending on the mutation type
-     * @param {HTMLElement} container HTML editable div used as editor
-     * @param {MutationRecord} mutations The mutation that happened
-     */
-    static handleMutation(container, mutation) {
-        if (mutation.type === "childList") {
-            MDFormatter.handleChildListMutation(container, mutation);
-        }
-        if (mutation.type === "characterData") {
-            MDFormatter.handleCharacterDataMutation(container, mutation);
-        }
-    }
-    /**
-     * Handle a single Mutation of type childList
-     * @param {HTMLElement} editor HTML editable div used as editor
-     * @param {MutationRecord} mutation The mutation that happened
-     */
-    static handleChildListMutation(editor, mutation) {
-        if (mutation.addedNodes.length > 0) {
-            const addedNode = mutation.addedNodes[0];
-            // Add first div if the editor is empty and this is the first addedd #text
-            // The first text written will not be in a separate div, so create a div for it
-            // and put the text inside
-            if (addedNode.nodeName === "#text" && addedNode.parentElement === editor) {
-                const newDiv = document.createElement("div");
-                editor.insertBefore(newDiv, addedNode.nextSibling);
-                newDiv.appendChild(addedNode);
-                // Move cursor to end of line
-                const range = document.createRange();
-                const sel = window.getSelection();
-                range.setStart(editor.childNodes[0], newDiv.innerText.length);
-                range.collapse(true);
-                if (sel) {
-                    sel.removeAllRanges();
-                    sel.addRange(range);
-                }
-            }
-            // If added node is a div, clear all classes
-            if (addedNode.nodeName === "DIV" && mutation.target !== editor) {
-                if (addedNode.nodeType === Node.ELEMENT_NODE) {
-                    const elementFromNode = addedNode;
-                    while (elementFromNode.hasAttributes()) {
-                        elementFromNode.removeAttribute(elementFromNode.attributes[0].name);
-                    }
-                }
-            }
-        }
-        // Check if the element is empty and clear its classes
-        if (mutation.target.nodeType === Node.ELEMENT_NODE && mutation.target !== editor) {
-            const elementFromNode = mutation.target;
-            if (elementFromNode) {
-                const spacesRegex = RegExp("\\s*");
-                if (spacesRegex.test(elementFromNode.innerText)) {
-                    elementFromNode.className = "";
-                }
-            }
-        }
-    }
-    /**
-     * Handle a single Mutation of type characterData
-     * @param {HTMLElement} container HTML editable div used as editor
-     * @param {MutationRecord} mutation The mutation that happened
-     */
-    static handleCharacterDataMutation(container, mutation) {
-        const parent = mutation.target.parentElement;
-        if (parent) {
-            parent.className = "";
-            for (const [className, regex] of MDFormatter.startLineRegex) {
-                if (regex.test(parent.innerText)) {
-                    parent.className = className;
-                }
-            }
-        }
-    }
-}
-/**
- * An array of [<class-name>, <regex-expression>] tuples
- * <class-name> is the css class name added to the
- * element if it matches <regex-expression>
- */
-MDFormatter.startLineRegex = [];
-;
+
 /**
  * Abstraction of the editor as a collection of container, formatter, settings and themes
  */
@@ -225,10 +91,10 @@ class Editor {
      * Inject the CSS classes/IDs into the HTML so the formatter can
      * use them when stylizing the content
      */
-    injectAdditionalCssIdentifiers() {
-        if (this.theme.additionalCssIdentifiers) {
-            Object.entries(this.theme.additionalCssIdentifiers).forEach(([identifier, properties]) => {
-                CSSHelper.injectCss(identifier, properties);
+    injectAdditionalCssRules() {
+        if (this.theme.additionalCssRules) {
+            Object.entries(this.theme.additionalCssRules).forEach(([identifier, properties]) => {
+                CssHelper.injectCss(identifier, properties);
             });
         }
     }
@@ -238,7 +104,7 @@ class Editor {
     injectScrollbarTheme() {
         if (this.theme.scrollbarTheme) {
             Object.entries(this.theme.scrollbarTheme).forEach(([identifier, properties]) => {
-                CSSHelper.injectCss("#" + this.getEditorId() + "::" + identifier, properties);
+                CssHelper.injectCss("#" + this.getEditorId() + "::" + identifier, properties);
             });
         }
     }
@@ -312,16 +178,17 @@ class Editor {
      * Change the editor theme by changint its style property
      */
     applyTheme() {
-        CSSHelper.injectCss(this.getMenuIdentifier(), this.getMenuBaseCssProperties());
-        CSSHelper.injectCss(this.getEditorIdentifier(), this.getEditorBaseCssProperties());
+        CssHelper.injectCss(this.getMenuIdentifier(), this.getMenuBaseCssProperties());
+        CssHelper.injectCss(this.getEditorIdentifier(), this.getEditorBaseCssProperties());
         this.injectContainerTheme();
-        this.injectAdditionalCssIdentifiers();
+        this.injectAdditionalCssRules();
         this.injectScrollbarTheme();
     }
     /**
      * Inject the additional CSS classes into the HTML
      */
     injectContainerTheme() {
+        // TODO fix any
         let properties;
         if (this.theme.editorTheme) {
             properties = { ...this.getContainerBaseCssProperties(), ...this.theme.editorTheme };
@@ -329,7 +196,7 @@ class Editor {
         else {
             properties = this.getContainerBaseCssProperties();
         }
-        CSSHelper.injectCss(this.getContainerIdentifier(), properties);
+        CssHelper.injectCss(this.getContainerIdentifier(), properties);
     }
     /**
      * Hardcoded CSS for the Container
@@ -387,72 +254,23 @@ class Editor {
         return this.containerId + "-editor";
     }
 }
-;
+"use strict";
 /**
- * Add methods to work with CSS like injecting classes and
- * converting CSS properties to string which looks like css
+ * ! This is a base class, which must be extended for every different formatter
+ * Base class for formatter logic used in the editor
+ * To customize the formatting rules inherit this clas and
+ * override the init method
  */
-class CSSHelper {
-    /**
-     * Deprecated singleton, the class is now static
-     * The only remaining part of the singleton is the instance
-     * which ensures that the constructor has been called and a new
-     * style tag has been injected into the HTML
-     */
-    constructor() {
-        CSSHelper.styleElement = document.createElement("style");
-        CSSHelper.styleElement.type = "text/css";
-        document.getElementsByTagName("head")[0].appendChild(CSSHelper.styleElement);
-    }
-    /**
-     * Inject CSS given an identifier and properties
-     * @param {string} identifier CSS identifier, e.g '#some-id' or 'a:hover'
-     * @param {CssProperties} properties CSS properties
-     */
-    static injectCss(identifier, properties) {
-        const cssTextPropertoes = CSSHelper.stringifyCSSProperties(properties);
-        CSSHelper.styleElement.innerHTML += `${identifier} { ${cssTextPropertoes} } \n`;
-    }
-    /**
-     * Convert a list of css properties to a string which is valid css
-     * @param {CssProperties} property CSSproperties
-     */
-    static stringifyCSSProperties(property) {
-        let cssString = "";
-        Object.entries(property).forEach(([key, value]) => {
-            if (value !== "") {
-                cssString += `${key}: ${value}; `;
-            }
-        });
-        return cssString;
-    }
+class Formatter {
 }
-/**
- * The instance is used only to initialize the class once
- */
-CSSHelper.instance = new CSSHelper();
-;
-/**
- * Class providing useful methods to work with the HTML DOM
- */
-class DOMHelper {
-    static HTMLElementFromString(html) {
-        const creationHelperElement = document.createElement("div");
-        creationHelperElement.innerHTML = html.trim();
-        if (creationHelperElement.firstChild && creationHelperElement.firstChild.nodeType === Node.ELEMENT_NODE) {
-            return creationHelperElement.firstChild;
-        }
-        throw new Error("Failed to create element from html: " + html);
-    }
-}
-;
+
 /**
  * Create Markdown Theme
  */
-let darkMDFormatterTheme = {
+const darkMDFormatterTheme = {
     ".md-header-1": {
         "margin": "24px 0 16px 0",
-        "font-weight": "600",
+        "font-weight": "bold",
         "line-height": "1.25",
         "font-size": "2em",
         "padding-bottom": ".3em",
@@ -460,7 +278,7 @@ let darkMDFormatterTheme = {
     },
     ".md-header-2": {
         "margin": "24px 0 16px 0",
-        "font-weight": "600",
+        "font-weight": "bold",
         "line-height": "1.25",
         "padding-bottom": ".3em",
         "border-bottom": "1px solid #eaecef",
@@ -468,25 +286,25 @@ let darkMDFormatterTheme = {
     },
     ".md-header-3": {
         "margin": "24px 0 16px 0",
-        "font-weight": "600",
+        "font-weight": "bold",
         "line-height": "1.25",
         "font-size": "1.25em",
     },
     ".md-header-4": {
         "margin": "24px 0 16px 0",
-        "font-weight": "600",
+        "font-weight": "bold",
         "line-height": "1.25",
         "font-size": "1em",
     },
     ".md-header-5": {
         "margin": "24px 0 16px 0",
-        "font-weight": "600",
+        "font-weight": "bold",
         "line-height": "1.25",
         "font-size": ".875em",
     },
     ".md-header-6": {
         "margin": "24px 0 16px 0",
-        "font-weight": "600",
+        "font-weight": "bold",
         "line-height": "1.25",
         "font-size": ".85em",
     },
@@ -517,21 +335,21 @@ let darkMDFormatterTheme = {
         "padding": ".2em .4em",
         "font-size": "85%",
         "border-radius": "3px",
-        "background-color": "rgba(220, 224, 228, 0.1) !important",
+        "background-color": "rgba(220, 224, 228, 0.1) ! important"
     },
     ".md-block-code": {
         "font-family": "monospace",
         "border-radius": "3px",
         "word-wrap": "normal",
         "padding": "16px",
-        "background": "rgba(220, 224, 228, 0.1) !important",
+        "background": "rgba(220, 224, 228, 0.1) !important"
     },
     ".md-table-header": {
         "line-height": "1.5",
         "border-spacing": "0",
         "border-collapse": "collapse",
         "text-align": "center",
-        "font-weight": "600",
+        "font-weight": "bold",
         "padding": "6px 13px",
         "border": "1px solid #dfe2e5",
     },
@@ -558,12 +376,10 @@ let darkMDFormatterTheme = {
         "background": "white",
     },
 };
-;
-;
 /**
  * Dark theme for the scrollbar
  */
-let darkScrollbar = {
+const darkScrollbar = {
     "-webkit-scrollbar": {
         "width": "10px",
     },
@@ -579,17 +395,223 @@ let darkScrollbar = {
         "background": "rgb(93, 99, 106)",
     },
 };
+const darkEditorTheme = {
+    "background": "#202225",
+    "color": "#dcddde",
+    "height": "50%",
+    "box-shadow": "0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19)"
+};
 /**
  * Example usage
  */
-let customTheme = {
+const customTheme = {
     scrollbarTheme: darkScrollbar,
-    additionalCssIdentifiers: darkMDFormatterTheme,
-    editorTheme: {
-        "background": "#202225",
-        "color": "#dcddde",
-        "height": "50%",
-        "box-shadow": "0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19)"
-    }
+    additionalCssRules: darkMDFormatterTheme,
+    editorTheme: darkEditorTheme,
 };
-const editor = new Editor("editor", new MDFormatter(), customTheme);
+
+"use strict";
+/**
+ * Markdown formatter which is based on the generic Formatter class
+ * This formatter uses common Markdown syntax to
+ */
+class MDFormatter extends Formatter {
+    constructor() {
+        super(...arguments);
+        /**
+         * Hook to the editor div
+         */
+        this.editor = document.createElement('invalid');
+    }
+    /**
+     * Initialize the mutation observer, which monitors changes happening
+     * inside the container
+     * @param {HTMLElement} editor HTML editable div used as editor
+     */
+    init(editor) {
+        this.editor = editor;
+        this.initRegex();
+        const observer = new MutationObserver((mutations) => this.handleMutations(mutations));
+        const observerConfig = {
+            childList: true,
+            subtree: true,
+            characterData: true,
+        };
+        observer.observe(editor, observerConfig);
+    }
+    /**
+     * Get list of property elements to put in the settings menu in the editor
+     */
+    getSettings() {
+        const settingsHtml = [
+            `<div data-setting="dynamic-render" style='display: flex; flex-direction: row; justify-items: center; justify-content: space-between; margin-top: 20px;'>
+                <div style='display: flex;'>
+                    Dynamic render
+                </div>
+                <div style='display: flex;'>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                    </svg>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
+                        stroke-linecap="round" stroke-linejoin="round" display="none">
+                        <polyline points="9 11 12 14 22 4" />
+                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+                    </svg>
+                </div>
+            </div>`,
+        ];
+        const settingsElements = settingsHtml.map((setting) => DOMHelper.HTMLElementFromString(setting));
+        // TODO convert the following foreach to event delegation
+        settingsElements.forEach(element => {
+            if (element.hasAttribute('data-setting')) {
+                if (element.getAttribute('data-setting') === 'dynamic-render') {
+                    element.addEventListener('click', (event) => this.toggleDynamicRender(event));
+                }
+            }
+        });
+        return settingsElements;
+    }
+    /**
+     * Method to handle the click event on the setting Toggle Dynamic Renderer
+     * @param event Click event to toggle Dynamic Renderer
+     */
+    toggleDynamicRender(event) {
+        if (event.currentTarget instanceof Element) {
+            const settingsItem = event.currentTarget;
+            const svgs = settingsItem?.children[1].children;
+            for (const svg of svgs) {
+                if (svg.hasAttribute("display")) {
+                    svg.removeAttribute("display");
+                    // TODO
+                }
+                else {
+                    svg.setAttribute("display", "none");
+                    // TODO
+                }
+            }
+        }
+    }
+    /**
+     * Initialize regexes for matching markdown formatting strings
+     * at the start of the line
+     * e.g headers # and ###
+     */
+    initRegex() {
+        if (MDFormatter.startLineRegex.length === 0) {
+            MDFormatter.startLineRegex.push(["md-header-1", RegExp("^#{1}\\s")]);
+            MDFormatter.startLineRegex.push(["md-header-2", RegExp("^#{2}\\s")]);
+            MDFormatter.startLineRegex.push(["md-header-3", RegExp("^#{3}\\s")]);
+            MDFormatter.startLineRegex.push(["md-header-4", RegExp("^#{4}\\s")]);
+            MDFormatter.startLineRegex.push(["md-header-5", RegExp("^#{5}\\s")]);
+            MDFormatter.startLineRegex.push(["md-header-6", RegExp("^#{6}\\s")]);
+            MDFormatter.startLineRegex.push(["md-quote", RegExp("^>\\s")]);
+        }
+    }
+    /**
+     * Handle array of Mutations
+     * @param {HTMLElement} container HTML editable div used as editor
+     * @param {MutationRecord[]} mutations array of mutations
+     */
+    handleMutations(mutations) {
+        for (const mutation of mutations) {
+            this.handleMutation(mutation);
+        }
+    }
+    /**
+     * Handle a single mutation by calling the right method depending on the mutation type
+     * @param {HTMLElement} container HTML editable div used as editor
+     * @param {MutationRecord} mutations The mutation that happened
+     */
+    handleMutation(mutation) {
+        if (mutation.type === "childList") {
+            this.handleChildListMutation(mutation);
+        }
+        if (mutation.type === "characterData") {
+            this.handleCharacterDataMutation(mutation);
+        }
+    }
+    /**
+     * Handle a single Mutation of type childList
+     * @param {HTMLElement} editor HTML editable div used as editor
+     * @param {MutationRecord} mutation The mutation that happened
+     */
+    handleChildListMutation(mutation) {
+        if (mutation.addedNodes.length > 0) {
+            const addedNode = mutation.addedNodes[0];
+            // Add first div if the editor is empty and this is the first addedd #text
+            // The first text written will not be in a separate div, so create a div for it
+            // and put the text inside
+            if (addedNode.nodeName === "#text" && addedNode.parentElement === this.editor) {
+                const newDiv = document.createElement("div");
+                this.editor.insertBefore(newDiv, addedNode.nextSibling);
+                newDiv.appendChild(addedNode);
+                // Move cursor to end of line
+                const range = document.createRange();
+                const sel = window.getSelection();
+                range.setStart(this.editor.childNodes[0], newDiv.innerText.length);
+                range.collapse(true);
+                if (sel) {
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                }
+            }
+            // If added node is a div, clear all classes
+            if (addedNode.nodeName === "DIV" && mutation.target !== this.editor) {
+                if (addedNode.nodeType === Node.ELEMENT_NODE) {
+                    const elementFromNode = addedNode;
+                    while (elementFromNode.hasAttributes()) {
+                        elementFromNode.removeAttribute(elementFromNode.attributes[0].name);
+                    }
+                }
+            }
+        }
+        // Check if the element is empty and clear its classes
+        if (mutation.target.nodeType === Node.ELEMENT_NODE && mutation.target !== this.editor) {
+            const elementFromNode = mutation.target;
+            if (elementFromNode) {
+                const spacesRegex = RegExp("\\s*");
+                if (spacesRegex.test(elementFromNode.innerText)) {
+                    elementFromNode.className = '';
+                }
+            }
+        }
+    }
+    /**
+     * Handle a single Mutation of type characterData
+     * @param {HTMLElement} container HTML editable div used as editor
+     * @param {MutationRecord} mutation The mutation that happened
+     */
+    handleCharacterDataMutation(mutation) {
+        const div = mutation.target.parentElement;
+        if (div) {
+            div.className = "";
+            this.applyFormatting(div);
+        }
+    }
+    /**
+     * Add specific MD formatting to a single element(paragraph)
+     * @param div the element to apply specific formatting
+     */
+    applyFormatting(div) {
+        for (const [className, regex] of MDFormatter.startLineRegex) {
+            if (regex.test(div.innerText)) {
+                div.className = className;
+            }
+        }
+    }
+    /**
+     * Clear MD formatting from a single element(paragraph)
+     * @param div the element to apply specific formatting
+     */
+    clearFormatting(div) {
+        div.className = '';
+    }
+}
+/**
+ * An array of [<class-name>, <regex-expression>] tuples
+ * <class-name> is the css class name added to the
+ * element if it matches <regex-expression>
+ */
+MDFormatter.startLineRegex = [];
+const editor = new Editor( "editor", new MDFormatter(), customTheme );
