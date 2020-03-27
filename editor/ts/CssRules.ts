@@ -1,4 +1,3 @@
-
 export interface CssRules {
-    // TODO or leave empty
+  // TODO or leave empty
 }

@@ -4,13 +4,13 @@
  * To customize the formatting rules inherit this clas and
  * override the init method
  */
-abstract class Formatter {
-    /**
-     * This method should initialize all the event handles and methods
-     * which are responsible for formatting the content of the container
-     * @param {HTMLElement} container HTML editable div used as editor
-     */
-    abstract init(container: HTMLElement): void;
+export abstract class Formatter {
+  /**
+   * This method should initialize all the event handles and methods
+   * which are responsible for formatting the content of the container
+   * @param {HTMLElement} container HTML editable div used as editor
+   */
+  abstract init(container: HTMLElement): void;
 
-    abstract getSettings(): HTMLElement[];
+  abstract getSettings(): HTMLElement[];
 }

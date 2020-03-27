@@ -12,7 +12,9 @@ class CssHelper {
     constructor() {
         CssHelper.styleElement = document.createElement("style");
         CssHelper.styleElement.type = "text/css";
-        document.getElementsByTagName("head")[0].appendChild(CssHelper.styleElement);
+        document
+            .getElementsByTagName("head")[0]
+            .appendChild(CssHelper.styleElement);
     }
     /**
      * Inject CSS given an identifier and properties
@@ -26,6 +28,7 @@ class CssHelper {
     /**
      * Convert a list of css properties to a string which is valid css
      * @param {PropertiesHyphen} property CSS properties
+     * @return {string}
      */
     static stringifyCSSProperties(property) {
         let cssString = "";
@@ -42,21 +45,26 @@ class CssHelper {
  * to make sure later on there is a style element which can be edited
  */
 CssHelper.instance = new CssHelper();
-"use strict";
-"use strict";
 /**
  * Class providing useful methods to work with the HTML DOM
  */
 class DOMHelper {
-    static HTMLElementFromString(html) {
+    /**
+     * Convert html string to html element
+     * @param {string} html string
+     * @return {HTMLElement}
+     */
+    static htmlElementFromString(html) {
         const creationHelperElement = document.createElement("div");
         creationHelperElement.innerHTML = html.trim();
-        if (creationHelperElement.firstChild && creationHelperElement.firstChild.nodeType === Node.ELEMENT_NODE) {
+        if (creationHelperElement.firstChild &&
+            creationHelperElement.firstChild.nodeType === Node.ELEMENT_NODE) {
             return creationHelperElement.firstChild;
         }
         throw new Error("Failed to create element from html: " + html);
     }
 }
+
 
 /**
  * Abstraction of the editor as a collection of container, formatter, settings and themes
@@ -88,7 +96,7 @@ class Editor {
         this.formatter.init(this.editor);
     }
     /**
-     * Inject the CSS classes/IDs into the HTML so the formatter can
+     * Inject the Css classes/IDs into the HTML so the formatter can
      * use them when stylizing the content
      */
     injectAdditionalCssRules() {
@@ -110,8 +118,8 @@ class Editor {
     }
     /**
      * Create the editor content container as an editable div
+     * @param {string} futureContainerId Id of html element to convert to container for the editor
      */
-    // Make sure the container is a div
     initializeContainer(futureContainerId) {
         const futureContainer = document.getElementById(futureContainerId);
         if (!futureContainer) {
@@ -126,7 +134,7 @@ class Editor {
         this.container.appendChild(this.menu);
         this.menu.id = this.getMenuId();
         // Add settings button
-        const settingsSvg = DOMHelper.HTMLElementFromString(`
+        const settingsSvg = DOMHelper.htmlElementFromString(`
         <div style='display: flex; justify-content: flex-end;'>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="9 18 15 12 9 6" />
@@ -136,18 +144,25 @@ class Editor {
             </svg>
         </div>`);
         this.menu.appendChild(settingsSvg);
-        settingsSvg.addEventListener('click', (event) => {
+        settingsSvg.addEventListener("click", (event) => {
             this.settingsClick(event, this.menu);
         });
         this.container.appendChild(this.editor);
         this.editor.id = this.getEditorId();
         this.editor.contentEditable = "true";
-        const settingsContainer = document.createElement('div');
+        const settingsContainer = document.createElement("div");
         this.menu.appendChild(settingsContainer);
-        settingsContainer.style.display = 'none';
-        settingsContainer.style.flexDirection = 'column';
-        this.formatter.getSettings().forEach((element) => settingsContainer.appendChild(element));
+        settingsContainer.style.display = "none";
+        settingsContainer.style.flexDirection = "column";
+        this.formatter
+            .getSettings()
+            .forEach((element) => settingsContainer.appendChild(element));
     }
+    /**
+     * Event handler function for settings clicking
+     * @param {MouseEvent} event click on a setting
+     * @param {HTMLElement} menu the menu container as html element
+     */
     settingsClick(event, menu) {
         if (event.currentTarget instanceof Element) {
             const target = event.currentTarget;
@@ -165,11 +180,11 @@ class Editor {
                 // Resize menu
                 if (target.parentElement.style.width === "") {
                     target.parentElement.style.width = "250px";
-                    menu.children[1].style.display = 'flex';
+                    menu.children[1].style.display = "flex";
                 }
                 else {
                     target.parentElement.style.width = "";
-                    menu.children[1].style.display = 'none';
+                    menu.children[1].style.display = "none";
                 }
             }
         }
@@ -178,83 +193,120 @@ class Editor {
      * Change the editor theme by changint its style property
      */
     applyTheme() {
-        CssHelper.injectCss(this.getMenuIdentifier(), this.getMenuBaseCssProperties());
-        CssHelper.injectCss(this.getEditorIdentifier(), this.getEditorBaseCssProperties());
         this.injectContainerTheme();
-        this.injectAdditionalCssRules();
+        this.injectMenuCss();
+        this.injectEditorCss();
         this.injectScrollbarTheme();
+        this.injectAdditionalCssRules();
     }
     /**
-     * Inject the additional CSS classes into the HTML
+     * Inject editor Css class into the HTML
+     */
+    injectEditorCss() {
+        CssHelper.injectCss(this.getEditorIdentifier(), this.getEditorBaseCssProperties());
+    }
+    /**
+     * Inject menu Css class into the HTML
+     */
+    injectMenuCss() {
+        CssHelper.injectCss(this.getMenuIdentifier(), this.getMenuBaseCssProperties());
+    }
+    /**
+     * Inject container Css class into the HTML
      */
     injectContainerTheme() {
-        // TODO fix any
-        let properties;
-        if (this.theme.editorTheme) {
-            properties = { ...this.getContainerBaseCssProperties(), ...this.theme.editorTheme };
-        }
-        else {
-            properties = this.getContainerBaseCssProperties();
-        }
-        CssHelper.injectCss(this.getContainerIdentifier(), properties);
+        const containerCss = this.getContainerCssProperties();
+        CssHelper.injectCss(this.getContainerIdentifier(), containerCss);
     }
     /**
-     * Hardcoded CSS for the Container
+     * @return {PropertiesHyphen} The combined hardcoded container Css with the container Css provided in the Theme
+     */
+    getContainerCssProperties() {
+        if (this.theme.editorTheme) {
+            return {
+                ...this.getContainerBaseCssProperties(),
+                ...this.theme.editorTheme,
+            };
+        }
+        return this.getContainerBaseCssProperties();
+    }
+    /**
+     * Hardcoded Css for the Container
+     * @return {PropertiesHyphen}
      */
     getContainerBaseCssProperties() {
         return {
-            "cursor": "default",
-            "display": "flex",
+            cursor: "default",
+            display: "flex",
             "flex-direction": "row",
-            "resize": "both",
-            "overflow": "auto",
+            resize: "both",
+            overflow: "auto",
         };
     }
     /**
-     * Hardcoded CSS for the menu
+     * Hardcoded Css for the menu
+     * @return {PropertiesHyphen}
      */
     getMenuBaseCssProperties() {
         return {
             "border-right": "1px solid rgb(83, 79, 86)",
-            "margin": "20px 0px 20px 0px",
-            "padding": "15px 20px 15px 20px",
-            "display": "flex",
+            margin: "20px 0px 20px 0px",
+            padding: "15px 20px 15px 20px",
+            display: "flex",
             "flex-direction": "column",
         };
     }
     /**
-     * Hardcoded CSS for the editor
+     * Hardcoded Css for the editor
+     * @return {PropertiesHyphen}
      */
     getEditorBaseCssProperties() {
         return {
-            "flex": "1",
-            "outline": "none",
-            "overflow": "auto",
+            flex: "1",
+            outline: "none",
+            overflow: "auto",
             "scrollbar-color": "red",
-            "padding": "20px 30px 20px 30px",
-            "margin": "10px 10px 10px 10px",
+            padding: "20px 30px 20px 30px",
+            margin: "10px 10px 10px 10px",
         };
     }
+    /**
+     * @return {string} Main container Id prepended with #
+     */
     getContainerIdentifier() {
         return "#" + this.getContainerId();
     }
+    /**
+     * @return {string} Menu Id prepended with #
+     */
     getMenuIdentifier() {
         return "#" + this.getMenuId();
     }
+    /**
+     * @return {string} Editor Id prepended with #
+     */
     getEditorIdentifier() {
         return "#" + this.getEditorId();
     }
+    /**
+     * @return {string} Id of the whole container
+     */
     getContainerId() {
         return this.containerId + "-container";
     }
+    /**
+     * @return {string} Id of the menu window
+     */
     getMenuId() {
         return this.containerId + "-menu";
     }
+    /**
+     * @return {string} Id of the editor window
+     */
     getEditorId() {
         return this.containerId + "-editor";
     }
 }
-"use strict";
 /**
  * ! This is a base class, which must be extended for every different formatter
  * Base class for formatter logic used in the editor
@@ -264,153 +316,7 @@ class Editor {
 class Formatter {
 }
 
-/**
- * Create Markdown Theme
- */
-const darkMDFormatterTheme = {
-    ".md-header-1": {
-        "margin": "24px 0 16px 0",
-        "font-weight": "bold",
-        "line-height": "1.25",
-        "font-size": "2em",
-        "padding-bottom": ".3em",
-        "border-bottom": "1px solid #eaecef",
-    },
-    ".md-header-2": {
-        "margin": "24px 0 16px 0",
-        "font-weight": "bold",
-        "line-height": "1.25",
-        "padding-bottom": ".3em",
-        "border-bottom": "1px solid #eaecef",
-        "font-size": "1.5em",
-    },
-    ".md-header-3": {
-        "margin": "24px 0 16px 0",
-        "font-weight": "bold",
-        "line-height": "1.25",
-        "font-size": "1.25em",
-    },
-    ".md-header-4": {
-        "margin": "24px 0 16px 0",
-        "font-weight": "bold",
-        "line-height": "1.25",
-        "font-size": "1em",
-    },
-    ".md-header-5": {
-        "margin": "24px 0 16px 0",
-        "font-weight": "bold",
-        "line-height": "1.25",
-        "font-size": ".875em",
-    },
-    ".md-header-6": {
-        "margin": "24px 0 16px 0",
-        "font-weight": "bold",
-        "line-height": "1.25",
-        "font-size": ".85em",
-    },
-    ".md-italics": {
-        "font-style": "italic",
-    },
-    ".md-bold": {
-        "font-weight": "bold",
-    },
-    ".md-strikethrough": {
-        "text-decoration": "line-through",
-    },
-    ".md-ordered-list": {
-        "list-style-type": "decimal",
-    },
-    ".md-unordered-list": {
-        "list-style-type": "circle",
-    },
-    ".md-link": {
-        "text-decoration": "none",
-        "color": "rgb(77, 172, 253)",
-    },
-    ".md-image": {
-        "max-width": "100%",
-    },
-    ".md-inline-code": {
-        "font-family": "monospace",
-        "padding": ".2em .4em",
-        "font-size": "85%",
-        "border-radius": "3px",
-        "background-color": "rgba(220, 224, 228, 0.1) ! important"
-    },
-    ".md-block-code": {
-        "font-family": "monospace",
-        "border-radius": "3px",
-        "word-wrap": "normal",
-        "padding": "16px",
-        "background": "rgba(220, 224, 228, 0.1) !important"
-    },
-    ".md-table-header": {
-        "line-height": "1.5",
-        "border-spacing": "0",
-        "border-collapse": "collapse",
-        "text-align": "center",
-        "font-weight": "bold",
-        "padding": "6px 13px",
-        "border": "1px solid #dfe2e5",
-    },
-    ".md-table-cell": {
-        "line-height": "1.5",
-        "border-spacing": "0",
-        "border-collapse": "collapse",
-        "text-align": "right",
-        "padding": "6px 13px",
-        "border": "1px solid #dfe2e5",
-    },
-    ".md-quote": {
-        "border-spacing": "0",
-        "border-collapse": "collapse",
-        "padding": "6px 13px",
-        "border-left": ".25em solid rgb(53, 59, 66)",
-    },
-    ".md-horizontal-line": {
-        "line-height": "1.5",
-        "overflow": "hidden",
-        "height": ".25em",
-        "padding": "0",
-        "margin": "24px 0",
-        "background": "white",
-    },
-};
-/**
- * Dark theme for the scrollbar
- */
-const darkScrollbar = {
-    "-webkit-scrollbar": {
-        "width": "10px",
-    },
-    "-webkit-scrollbar-track": {
-        "background": "rgb(53, 59, 66)",
-        "border-radius": "4px",
-    },
-    "-webkit-scrollbar-thumb": {
-        "background": "rgb(83, 79, 86)",
-        "border-radius": "4px",
-    },
-    "-webkit-scrollbar-thumb:hover": {
-        "background": "rgb(93, 99, 106)",
-    },
-};
-const darkEditorTheme = {
-    "background": "#202225",
-    "color": "#dcddde",
-    "height": "50%",
-    "box-shadow": "0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19)"
-};
-/**
- * Example usage
- */
-const customTheme = {
-    scrollbarTheme: darkScrollbar,
-    additionalCssRules: darkMDFormatterTheme,
-    editorTheme: darkEditorTheme,
-};
 
-"use strict";
 /**
  * Markdown formatter which is based on the generic Formatter class
  * This formatter uses common Markdown syntax to
@@ -421,7 +327,7 @@ class MDFormatter extends Formatter {
         /**
          * Hook to the editor div
          */
-        this.editor = document.createElement('invalid');
+        this.editor = document.createElement("invalid");
     }
     /**
      * Initialize the mutation observer, which monitors changes happening
@@ -441,6 +347,7 @@ class MDFormatter extends Formatter {
     }
     /**
      * Get list of property elements to put in the settings menu in the editor
+     * @return {HTMLElement[]} List of settings as div elements
      */
     getSettings() {
         const settingsHtml = [
@@ -450,23 +357,23 @@ class MDFormatter extends Formatter {
                 </div>
                 <div style='display: flex;'>
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
-                        stroke-linecap="round" stroke-linejoin="round">
+                        stroke-linecap="round" stroke-linejoin="round" display="none">
                         <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
                     </svg>
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
-                        stroke-linecap="round" stroke-linejoin="round" display="none">
+                        stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="9 11 12 14 22 4" />
                         <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
                     </svg>
                 </div>
             </div>`,
         ];
-        const settingsElements = settingsHtml.map((setting) => DOMHelper.HTMLElementFromString(setting));
+        const settingsElements = settingsHtml.map((setting) => DOMHelper.htmlElementFromString(setting));
         // TODO convert the following foreach to event delegation
-        settingsElements.forEach(element => {
-            if (element.hasAttribute('data-setting')) {
-                if (element.getAttribute('data-setting') === 'dynamic-render') {
-                    element.addEventListener('click', (event) => this.toggleDynamicRender(event));
+        settingsElements.forEach((element) => {
+            if (element.hasAttribute("data-setting")) {
+                if (element.getAttribute("data-setting") === "dynamic-render") {
+                    element.addEventListener("click", (event) => this.toggleDynamicRender(event));
                 }
             }
         });
@@ -474,7 +381,7 @@ class MDFormatter extends Formatter {
     }
     /**
      * Method to handle the click event on the setting Toggle Dynamic Renderer
-     * @param event Click event to toggle Dynamic Renderer
+     * @param {MouseEvent} event Click event to toggle Dynamic Renderer
      */
     toggleDynamicRender(event) {
         if (event.currentTarget instanceof Element) {
@@ -510,7 +417,6 @@ class MDFormatter extends Formatter {
     }
     /**
      * Handle array of Mutations
-     * @param {HTMLElement} container HTML editable div used as editor
      * @param {MutationRecord[]} mutations array of mutations
      */
     handleMutations(mutations) {
@@ -520,8 +426,7 @@ class MDFormatter extends Formatter {
     }
     /**
      * Handle a single mutation by calling the right method depending on the mutation type
-     * @param {HTMLElement} container HTML editable div used as editor
-     * @param {MutationRecord} mutations The mutation that happened
+     * @param {MutationRecord} mutation Mutation to parse
      */
     handleMutation(mutation) {
         if (mutation.type === "childList") {
@@ -533,7 +438,6 @@ class MDFormatter extends Formatter {
     }
     /**
      * Handle a single Mutation of type childList
-     * @param {HTMLElement} editor HTML editable div used as editor
      * @param {MutationRecord} mutation The mutation that happened
      */
     handleChildListMutation(mutation) {
@@ -542,7 +446,8 @@ class MDFormatter extends Formatter {
             // Add first div if the editor is empty and this is the first addedd #text
             // The first text written will not be in a separate div, so create a div for it
             // and put the text inside
-            if (addedNode.nodeName === "#text" && addedNode.parentElement === this.editor) {
+            if (addedNode.nodeName === "#text" &&
+                addedNode.parentElement === this.editor) {
                 const newDiv = document.createElement("div");
                 this.editor.insertBefore(newDiv, addedNode.nextSibling);
                 newDiv.appendChild(addedNode);
@@ -567,19 +472,19 @@ class MDFormatter extends Formatter {
             }
         }
         // Check if the element is empty and clear its classes
-        if (mutation.target.nodeType === Node.ELEMENT_NODE && mutation.target !== this.editor) {
+        if (mutation.target.nodeType === Node.ELEMENT_NODE &&
+            mutation.target !== this.editor) {
             const elementFromNode = mutation.target;
             if (elementFromNode) {
                 const spacesRegex = RegExp("\\s*");
                 if (spacesRegex.test(elementFromNode.innerText)) {
-                    elementFromNode.className = '';
+                    elementFromNode.className = "";
                 }
             }
         }
     }
     /**
      * Handle a single Mutation of type characterData
-     * @param {HTMLElement} container HTML editable div used as editor
      * @param {MutationRecord} mutation The mutation that happened
      */
     handleCharacterDataMutation(mutation) {
@@ -591,7 +496,7 @@ class MDFormatter extends Formatter {
     }
     /**
      * Add specific MD formatting to a single element(paragraph)
-     * @param div the element to apply specific formatting
+     * @param {HTMLElement} div the element to apply specific formatting
      */
     applyFormatting(div) {
         for (const [className, regex] of MDFormatter.startLineRegex) {
@@ -602,10 +507,10 @@ class MDFormatter extends Formatter {
     }
     /**
      * Clear MD formatting from a single element(paragraph)
-     * @param div the element to apply specific formatting
+     * @param {HTMLElement} div the element to apply specific formatting
      */
     clearFormatting(div) {
-        div.className = '';
+        div.className = "";
     }
 }
 /**
@@ -614,4 +519,151 @@ class MDFormatter extends Formatter {
  * element if it matches <regex-expression>
  */
 MDFormatter.startLineRegex = [];
-const editor = new Editor( "editor", new MDFormatter(), customTheme );
+
+
+/**
+ * Create Markdown Theme
+ */
+const darkMDFormatterTheme = {
+    ".md-header-1": {
+        margin: "24px 0 16px 0",
+        "font-weight": "bold",
+        "line-height": "1.25",
+        "font-size": "2em",
+        "padding-bottom": ".3em",
+        "border-bottom": "1px solid #eaecef",
+    },
+    ".md-header-2": {
+        margin: "24px 0 16px 0",
+        "font-weight": "bold",
+        "line-height": "1.25",
+        "padding-bottom": ".3em",
+        "border-bottom": "1px solid #eaecef",
+        "font-size": "1.5em",
+    },
+    ".md-header-3": {
+        margin: "24px 0 16px 0",
+        "font-weight": "bold",
+        "line-height": "1.25",
+        "font-size": "1.25em",
+    },
+    ".md-header-4": {
+        margin: "24px 0 16px 0",
+        "font-weight": "bold",
+        "line-height": "1.25",
+        "font-size": "1em",
+    },
+    ".md-header-5": {
+        margin: "24px 0 16px 0",
+        "font-weight": "bold",
+        "line-height": "1.25",
+        "font-size": ".875em",
+    },
+    ".md-header-6": {
+        margin: "24px 0 16px 0",
+        "font-weight": "bold",
+        "line-height": "1.25",
+        "font-size": ".85em",
+    },
+    ".md-italics": {
+        "font-style": "italic",
+    },
+    ".md-bold": {
+        "font-weight": "bold",
+    },
+    ".md-strikethrough": {
+        "text-decoration": "line-through",
+    },
+    ".md-ordered-list": {
+        "list-style-type": "decimal",
+    },
+    ".md-unordered-list": {
+        "list-style-type": "circle",
+    },
+    ".md-link": {
+        "text-decoration": "none",
+        color: "rgb(77, 172, 253)",
+    },
+    ".md-image": {
+        "max-width": "100%",
+    },
+    ".md-inline-code": {
+        "font-family": "monospace",
+        padding: ".2em .4em",
+        "font-size": "85%",
+        "border-radius": "3px",
+        "background-color": "rgba(220, 224, 228, 0.1) !important",
+    },
+    ".md-block-code": {
+        "font-family": "monospace",
+        "border-radius": "3px",
+        "word-wrap": "normal",
+        padding: "16px",
+        background: "rgba(220, 224, 228, 0.1) !important",
+    },
+    ".md-table-header": {
+        "line-height": "1.5",
+        "border-spacing": "0",
+        "border-collapse": "collapse",
+        "text-align": "center",
+        "font-weight": "bold",
+        padding: "6px 13px",
+        border: "1px solid #dfe2e5",
+    },
+    ".md-table-cell": {
+        "line-height": "1.5",
+        "border-spacing": "0",
+        "border-collapse": "collapse",
+        "text-align": "right",
+        padding: "6px 13px",
+        border: "1px solid #dfe2e5",
+    },
+    ".md-quote": {
+        "border-spacing": "0",
+        "border-collapse": "collapse",
+        padding: "6px 13px",
+        "border-left": ".25em solid rgb(53, 59, 66)",
+    },
+    ".md-horizontal-line": {
+        "line-height": "1.5",
+        overflow: "hidden",
+        height: ".25em",
+        padding: "0",
+        margin: "24px 0",
+        background: "white",
+    },
+};
+/**
+ * Dark theme for the scrollbar
+ */
+const darkScrollbar = {
+    "-webkit-scrollbar": {
+        width: "10px",
+    },
+    "-webkit-scrollbar-track": {
+        background: "rgb(53, 59, 66)",
+        "border-radius": "4px",
+    },
+    "-webkit-scrollbar-thumb": {
+        background: "rgb(83, 79, 86)",
+        "border-radius": "4px",
+    },
+    "-webkit-scrollbar-thumb:hover": {
+        background: "rgb(93, 99, 106)",
+    },
+};
+const darkEditorTheme = {
+    background: "#202225",
+    color: "#dcddde",
+    height: "50%",
+    "box-shadow": "0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19)",
+};
+/**
+ * Example usage
+ */
+const customTheme = {
+    scrollbarTheme: darkScrollbar,
+    additionalCssRules: darkMDFormatterTheme,
+    editorTheme: darkEditorTheme,
+};
+const editor = new Editor("editor", new MDFormatter(), customTheme);

@@ -1,6 +1,6 @@
 import { PropertiesHyphen } from "csstype";
 
 export interface CssRule {
-    identifier: string;
-    properties: PropertiesHyphen;
+  identifier: string;
+  properties: PropertiesHyphen;
 }

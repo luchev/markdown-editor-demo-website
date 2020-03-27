@@ -6,7 +6,7 @@ import { CssRules } from "./CssRules";
  * A collection of theme objects
  */
 export interface Theme {
-    editorTheme?: EditorTheme;
-    scrollbarTheme?: ScrollbarTheme;
-    additionalCssRules?: CssRules;
+  editorTheme?: EditorTheme;
+  scrollbarTheme?: ScrollbarTheme;
+  additionalCssRules?: CssRules;
 }
