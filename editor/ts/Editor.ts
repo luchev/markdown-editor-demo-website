@@ -24,18 +24,23 @@ export class Editor {
   private menu: HTMLElement = document.createElement("div");
 
   /**
+   * The Id of the original element which is used as a prefix for the Ids of the container, menu and editor
+   */
+  private idPrefix: string;
+
+  /**
    * @param {string} containerId HTML element id which will become an ediable div
    * @param {Formatter} formatter Formatter which determines how the content is stylized
    * @param {Theme} theme Collection of theme objects
    */
   constructor(
-    private containerId: string,
+    containerId: string,
     private formatter: Formatter,
     private theme: Theme
   ) {
-    this.initializeContainer(containerId);
+    this.idPrefix = containerId;
+    this.initializeContainer(this.idPrefix);
     this.applyTheme();
-
     this.formatter.init(this.editor);
   }
 
@@ -70,45 +75,71 @@ export class Editor {
   }
 
   /**
-   * Create the editor content container as an editable div
-   * @param {string} futureContainerId Id of html element to convert to container for the editor
+   * Initialize the container Id
    */
-  private initializeContainer(futureContainerId: string): void {
+  private createContainerId(): void {
+    this.container.id = this.idPrefix;
+    this.container.id = this.getContainerId();
+  }
+
+  /**
+   * Create the container
+   * @param {string} futureContainerId Id of the html element to convert to container for the editor
+   */
+  private createContainer(futureContainerId: string): void {
     const futureContainer = document.getElementById(futureContainerId);
     if (!futureContainer) {
       throw new Error("Cannot find element with id " + futureContainerId);
     }
+
     const futureContainerParent = futureContainer.parentElement;
-
-    this.container.id = this.containerId;
-    this.container.id = this.getContainerId();
-
-    if (futureContainerParent) {
-      futureContainerParent.replaceChild(this.container, futureContainer);
+    if (!futureContainerParent) {
+      throw new Error(
+        "Cannot find parent of element with id " + futureContainerId
+      );
     }
 
+    this.createContainerId();
+
+    futureContainerParent.replaceChild(this.container, futureContainer);
+  }
+
+  /**
+   * Create the menu and add it to the container
+   */
+  private createMenu(): void {
+    this.createMenuBase();
+    this.createMenuSettingsItems();
+  }
+
+  /**
+   * Create the menu div and add the open/close button
+   */
+  private createMenuBase(): void {
     this.container.appendChild(this.menu);
     this.menu.id = this.getMenuId();
 
     // Add settings button
     const settingsSvg = DOMHelper.htmlElementFromString(`
         <div style='display: flex; justify-content: flex-end;'>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="9 18 15 12 9 6" />
-            </svg>
-            <svg display='none' width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="15 18 9 12 15 6" />
-            </svg>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6" />
+          </svg>
+          <svg display='none' width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
         </div>`);
+
     this.menu.appendChild(settingsSvg);
     settingsSvg.addEventListener("click", (event) => {
       this.settingsClick(event, this.menu);
     });
+  }
 
-    this.container.appendChild(this.editor);
-    this.editor.id = this.getEditorId();
-    this.editor.contentEditable = "true";
-
+  /**
+   * Create the settings elements in the HTML
+   */
+  private createMenuSettingsItems(): void {
     const settingsContainer = document.createElement("div");
     this.menu.appendChild(settingsContainer);
     settingsContainer.style.display = "none";
@@ -119,32 +150,49 @@ export class Editor {
   }
 
   /**
+   * Create the editor element and add it to the container
+   */
+  private createEditor(): void {
+    this.container.appendChild(this.editor);
+    this.editor.id = this.getEditorId();
+    this.editor.contentEditable = "true";
+  }
+
+  /**
+   * Create the editor content container as an editable div
+   * @param {string} futureContainerId Id of html element to convert to container for the editor
+   */
+  private initializeContainer(futureContainerId: string): void {
+    this.createContainer(futureContainerId);
+    this.createMenu();
+    this.createEditor();
+  }
+
+  /**
    * Event handler function for settings clicking
    * @param {MouseEvent} event click on a setting
    * @param {HTMLElement} menu the menu container as html element
    */
   private settingsClick(event: MouseEvent, menu: HTMLElement): void {
-    if (event.currentTarget instanceof Element) {
-      const target = event.currentTarget as Element;
-      if (target.parentElement) {
-        // Switch arrow direction
-        const svgs = target.children;
-        for (const svg of svgs) {
-          if (svg.hasAttribute("display")) {
-            svg.removeAttribute("display");
-          } else {
-            svg.setAttribute("display", "none");
-          }
-        }
-
-        // Resize menu
-        if (target.parentElement.style.width === "") {
-          target.parentElement.style.width = "250px";
-          (menu.children[1] as HTMLElement).style.display = "flex";
+    const target = event.currentTarget as Element;
+    if (target.parentElement) {
+      // Switch arrow direction
+      const svgs = target.children;
+      for (const svg of svgs) {
+        if (svg.hasAttribute("display")) {
+          svg.removeAttribute("display");
         } else {
-          target.parentElement.style.width = "";
-          (menu.children[1] as HTMLElement).style.display = "none";
+          svg.setAttribute("display", "none");
         }
+      }
+
+      // Resize menu
+      if (target.parentElement.style.width === "") {
+        target.parentElement.style.width = "250px";
+        (menu.children[1] as HTMLElement).style.display = "flex";
+      } else {
+        target.parentElement.style.width = "";
+        (menu.children[1] as HTMLElement).style.display = "none";
       }
     }
   }
@@ -269,20 +317,20 @@ export class Editor {
    * @return {string} Id of the whole container
    */
   private getContainerId(): string {
-    return this.containerId + "-container";
+    return this.idPrefix + "-container";
   }
 
   /**
    * @return {string} Id of the menu window
    */
   private getMenuId(): string {
-    return this.containerId + "-menu";
+    return this.idPrefix + "-menu";
   }
 
   /**
    * @return {string} Id of the editor window
    */
   private getEditorId(): string {
-    return this.containerId + "-editor";
+    return this.idPrefix + "-editor";
   }
 }

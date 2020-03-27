@@ -1,8 +1,5 @@
 import { Editor } from "./Editor";
-import { MDFormatter } from "./MDFormatter";
-/**
- * Create Markdown Theme
- */
+import { MdFormatter } from "./MdFormatter";
 const darkMDFormatterTheme = {
     ".md-header-1": {
         margin: "24px 0 16px 0",
@@ -112,9 +109,6 @@ const darkMDFormatterTheme = {
         background: "white",
     },
 };
-/**
- * Dark theme for the scrollbar
- */
 const darkScrollbar = {
     "-webkit-scrollbar": {
         width: "10px",
@@ -137,12 +131,9 @@ const darkEditorTheme = {
     height: "50%",
     "box-shadow": "0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19)",
 };
-/**
- * Example usage
- */
 const customTheme = {
     scrollbarTheme: darkScrollbar,
     additionalCssRules: darkMDFormatterTheme,
     editorTheme: darkEditorTheme,
 };
-const editor = new Editor("editor", new MDFormatter(), customTheme);
+const editor = new Editor("editor", new MdFormatter(), customTheme);

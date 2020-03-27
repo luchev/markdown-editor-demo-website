@@ -5,7 +5,7 @@ import { DOMHelper } from "./DOMHelper";
  * Markdown formatter which is based on the generic Formatter class
  * This formatter uses common Markdown syntax to
  */
-export class MDFormatter extends Formatter {
+export class MdFormatter extends Formatter {
   /**
    * An array of [<class-name>, <regex-expression>] tuples
    * <class-name> is the css class name added to the
@@ -17,6 +17,11 @@ export class MDFormatter extends Formatter {
    * Hook to the editor div
    */
   private editor: HTMLElement = document.createElement("invalid");
+
+  /**
+   * Flag indicating whether formatting should be applied when text is inputted
+   */
+  private dynamicRender = true;
 
   /**
    * Initialize the mutation observer, which monitors changes happening
@@ -86,18 +91,22 @@ export class MDFormatter extends Formatter {
    * @param {MouseEvent} event Click event to toggle Dynamic Renderer
    */
   private toggleDynamicRender(event: MouseEvent): void {
-    if (event.currentTarget instanceof Element) {
-      const settingsItem = event.currentTarget as Element;
-      const svgs = settingsItem?.children[1].children;
-      for (const svg of svgs) {
-        if (svg.hasAttribute("display")) {
-          svg.removeAttribute("display");
-          // TODO
-        } else {
-          svg.setAttribute("display", "none");
-          // TODO
-        }
+    const settingsItem = event.currentTarget as Element;
+    const svgs = settingsItem?.children[1].children;
+
+    for (const svg of svgs) {
+      if (svg.hasAttribute("display")) {
+        svg.removeAttribute("display");
+      } else {
+        svg.setAttribute("display", "none");
       }
+    }
+
+    this.dynamicRender = !this.dynamicRender;
+    if (this.dynamicRender) {
+      this.enableRendering();
+    } else {
+      this.disableRendering();
     }
   }
 
@@ -107,14 +116,14 @@ export class MDFormatter extends Formatter {
    * e.g headers # and ###
    */
   private initRegex(): void {
-    if (MDFormatter.startLineRegex.length === 0) {
-      MDFormatter.startLineRegex.push(["md-header-1", RegExp("^#{1}\\s")]);
-      MDFormatter.startLineRegex.push(["md-header-2", RegExp("^#{2}\\s")]);
-      MDFormatter.startLineRegex.push(["md-header-3", RegExp("^#{3}\\s")]);
-      MDFormatter.startLineRegex.push(["md-header-4", RegExp("^#{4}\\s")]);
-      MDFormatter.startLineRegex.push(["md-header-5", RegExp("^#{5}\\s")]);
-      MDFormatter.startLineRegex.push(["md-header-6", RegExp("^#{6}\\s")]);
-      MDFormatter.startLineRegex.push(["md-quote", RegExp("^>\\s")]);
+    if (MdFormatter.startLineRegex.length === 0) {
+      MdFormatter.startLineRegex.push(["md-header-1", RegExp("^#{1}\\s")]);
+      MdFormatter.startLineRegex.push(["md-header-2", RegExp("^#{2}\\s")]);
+      MdFormatter.startLineRegex.push(["md-header-3", RegExp("^#{3}\\s")]);
+      MdFormatter.startLineRegex.push(["md-header-4", RegExp("^#{4}\\s")]);
+      MdFormatter.startLineRegex.push(["md-header-5", RegExp("^#{5}\\s")]);
+      MdFormatter.startLineRegex.push(["md-header-6", RegExp("^#{6}\\s")]);
+      MdFormatter.startLineRegex.push(["md-quote", RegExp("^>\\s")]);
     }
   }
 
@@ -123,8 +132,10 @@ export class MDFormatter extends Formatter {
    * @param {MutationRecord[]} mutations array of mutations
    */
   private handleMutations(mutations: MutationRecord[]): void {
-    for (const mutation of mutations) {
-      this.handleMutation(mutation);
+    if (this.dynamicRender) {
+      for (const mutation of mutations) {
+        this.handleMutation(mutation);
+      }
     }
   }
 
@@ -213,11 +224,35 @@ export class MDFormatter extends Formatter {
   }
 
   /**
+   * Disable and Remove all formatting
+   */
+  private disableRendering(): void {
+    for (const child of this.editor.children) {
+      if (child instanceof HTMLElement) {
+        const div = child as HTMLElement;
+        this.clearFormatting(div);
+      }
+    }
+  }
+
+  /**
+   * Enable and apply all formatting
+   */
+  private enableRendering(): void {
+    for (const child of this.editor.children) {
+      if (child instanceof HTMLElement) {
+        const div = child as HTMLElement;
+        this.applyFormatting(div);
+      }
+    }
+  }
+
+  /**
    * Add specific MD formatting to a single element(paragraph)
    * @param {HTMLElement} div the element to apply specific formatting
    */
   private applyFormatting(div: HTMLElement): void {
-    for (const [className, regex] of MDFormatter.startLineRegex) {
+    for (const [className, regex] of MdFormatter.startLineRegex) {
       if (regex.test(div.innerText)) {
         div.className = className;
       }

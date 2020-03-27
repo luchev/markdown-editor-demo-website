@@ -3,7 +3,7 @@ import { ScrollbarTheme } from "./ScrollbarTheme";
 import { Theme } from "./Theme";
 import { Editor } from "./Editor";
 import { EditorTheme } from "./EditorTheme";
-import { MDFormatter } from "./MDFormatter";
+import { MdFormatter } from "./MdFormatter";
 
 /**
  * Create Markdown Theme
@@ -155,4 +155,4 @@ const customTheme: Theme = {
   editorTheme: darkEditorTheme,
 };
 
-const editor = new Editor("editor", new MDFormatter(), customTheme);
+const editor = new Editor("editor", new MdFormatter(), customTheme);
