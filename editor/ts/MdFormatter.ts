@@ -7,11 +7,26 @@ import { DOMHelper } from "./DOMHelper";
  */
 export class MdFormatter extends Formatter {
   /**
-   * An array of [<class-name>, <regex-expression>] tuples
+   * List of rules which are applied to markdown elements which
+   * start with a specific string
+   * e.g headers "# " or "### "
+   *
+   * An array of [<class-name>, <regex-expression>] tuples.
    * <class-name> is the css class name added to the
    * element if it matches <regex-expression>
    */
-  static startLineRegex: [string, RegExp][] = [];
+  private static lineStartRules: [string, RegExp][] = [];
+
+  /**
+   * Inline MD rules are italic, bold, strikethrough
+   * List of rules which are applied to inline markdown elements
+   * e.g **this text will be bold**
+   *
+   * An array of [<class-name>, <inline-identifier>] tuples.
+   * <class-name> is the css class name added to the
+   * element if it is surrounded by <inline-identifier>
+   */
+  private static inlineRules: [string, string][] = [];
 
   /**
    * Hook to the editor div
@@ -24,6 +39,11 @@ export class MdFormatter extends Formatter {
   private dynamicRender = true;
 
   /**
+   * The current div which the caret is in
+   */
+  private caretDiv: HTMLElement | null = null;
+
+  /**
    * Initialize the mutation observer, which monitors changes happening
    * inside the container
    * @param {HTMLElement} editor HTML editable div used as editor
@@ -31,17 +51,159 @@ export class MdFormatter extends Formatter {
   init(editor: HTMLElement): void {
     this.editor = editor;
     this.initRegex();
+    this.initMutationListeners();
+    this.initKeyboardEventListeners();
+    this.initMouseEventListeners();
+  }
+
+  /**
+   * Initialize global event listeners for changes in the DOM tree
+   * or user input in the editor div
+   */
+  private initMutationListeners(): void {
+    const observerConfig = {
+      childList: true, // addition/removal of children in the dom tree
+      subtree: true, // observe also grandchildren
+      characterData: true, // observe keyboard input
+      // attributes: true, // observe attribute change?
+    };
 
     const observer = new MutationObserver((mutations) =>
       this.handleMutations(mutations)
     );
-    const observerConfig = {
-      childList: true,
-      subtree: true, // observe also grandchildren
-      characterData: true, // observe typing
-      // attributes: true,
-    };
-    observer.observe(editor, observerConfig);
+
+    observer.observe(this.editor, observerConfig);
+  }
+
+  /**
+   * Initialize keyboard event listeners
+   */
+  private initKeyboardEventListeners(): void {
+    this.editor.addEventListener("keydown", () => this.handleKeyDown());
+    this.editor.addEventListener("keyup", () => this.handleKeyUp());
+  }
+
+  /**
+   * Initialize keyboard event listeners
+   */
+  private initMouseEventListeners(): void {
+    this.editor.addEventListener("click", () => this.handleClick());
+  }
+
+  /**
+   * Handle hotkeys
+   * @param {KeyboardEvent} event
+   */
+  private handleKeyDown(): void {
+    // TODO add argument event: KeyboardEvent
+    this.caretMoved();
+  }
+
+  /**
+   * Handle hotkeys
+   * @param {KeyboardEvent} event
+   */
+  private handleKeyUp(): void {
+    // TODO add argument event: KeyboardEvent
+    this.caretMoved();
+  }
+
+  /**
+   * Find the div in which the caret is
+   * @return {HTMLElement | null} the div in which the carret currently is or null if it's not in any
+   */
+  private getCaretDiv(): HTMLElement | null {
+    let element = document.getSelection()?.anchorNode
+      ?.parentElement as HTMLElement;
+
+    if (element) {
+      while (element.parentElement && element.parentElement !== this.editor) {
+        element = element.parentElement;
+      }
+    }
+
+    if (element.parentElement === this.editor) {
+      return element;
+    } else {
+      return null;
+    }
+  }
+
+  /**
+   * Handle caret entering a new div
+   */
+  private caretMoved(): void {
+    const caretDiv = this.getCaretDiv();
+    if (this.caretDiv !== caretDiv) {
+      if (this.caretDiv) {
+        this.caretDiv.setAttribute("data-active", "false");
+        this.hideMdTokens(this.caretDiv);
+      }
+
+      this.caretDiv = caretDiv;
+
+      if (this.caretDiv) {
+        this.caretDiv.setAttribute("data-active", "true");
+        this.showMdTokens(this.caretDiv);
+      }
+    }
+  }
+
+  /**
+   * @param {string} text text to apply regex to
+   * @param {RegExp} regex
+   * @return {string} length of first regex match
+   */
+  private getFirstRegexMatch(text: string, regex: RegExp): string {
+    const matches = text.match(regex);
+    if (matches && matches.length === 1) {
+      return matches[0];
+    }
+    return "";
+  }
+
+  /**
+   * @param {HTMLElement} div elemet in which to show MD tokens
+   */
+  private showMdTokens(div: HTMLElement): void {
+    for (const child of div.children) {
+      if (child instanceof HTMLElement && child.tagName === "SPAN") {
+        const span = child as HTMLElement;
+        if (span.style.display === "none") {
+          const spanText = span.innerText;
+          span.replaceWith(spanText);
+        }
+      }
+    }
+    div.normalize();
+  }
+
+  /**
+   * @param {HTMLElement} div elemet in which to hide MD tokens
+   */
+  private hideMdTokens(div: HTMLElement): void {
+    // Hide start of row MD tokens
+    for (const [, regex] of MdFormatter.lineStartRules) {
+      if (regex.test(div.innerText)) {
+        const lineStart = this.getFirstRegexMatch(div.innerText, regex);
+        div.innerHTML = div.innerHTML.replace(lineStart, "");
+
+        const span = document.createElement("span");
+        span.style.display = "none";
+        span.innerText = lineStart;
+
+        div.prepend(span);
+        break;
+      }
+    }
+  }
+
+  /**
+   * Handle mouse click in the editor
+   * @param {MouseEvent} event
+   */
+  private handleClick(): void {
+    this.caretMoved();
   }
 
   /**
@@ -50,22 +212,23 @@ export class MdFormatter extends Formatter {
    */
   getSettings(): HTMLElement[] {
     const settingsHtml = [
-      `<div data-setting="dynamic-render" style='display: flex; flex-direction: row; justify-items: center; justify-content: space-between; margin-top: 20px;'>
-                <div style='display: flex;'>
-                    Dynamic render
-                </div>
-                <div style='display: flex;'>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
-                        stroke-linecap="round" stroke-linejoin="round" display="none">
-                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                    </svg>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="9 11 12 14 22 4" />
-                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
-                    </svg>
-                </div>
-            </div>`,
+      `
+      <div data-setting="dynamic-render" style='display: flex; flex-direction: row; justify-items: center; justify-content: space-between; margin-top: 20px;'>
+        <div style='display: flex;'>
+          Dynamic render
+        </div>
+        <div style='display: flex;'>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" display="none">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+          </svg>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
+            stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 11 12 14 22 4" />
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+          </svg>
+        </div>
+      </div>
+      `,
     ];
 
     const settingsElements = settingsHtml.map((setting) =>
@@ -116,14 +279,27 @@ export class MdFormatter extends Formatter {
    * e.g headers # and ###
    */
   private initRegex(): void {
-    if (MdFormatter.startLineRegex.length === 0) {
-      MdFormatter.startLineRegex.push(["md-header-1", RegExp("^#{1}\\s")]);
-      MdFormatter.startLineRegex.push(["md-header-2", RegExp("^#{2}\\s")]);
-      MdFormatter.startLineRegex.push(["md-header-3", RegExp("^#{3}\\s")]);
-      MdFormatter.startLineRegex.push(["md-header-4", RegExp("^#{4}\\s")]);
-      MdFormatter.startLineRegex.push(["md-header-5", RegExp("^#{5}\\s")]);
-      MdFormatter.startLineRegex.push(["md-header-6", RegExp("^#{6}\\s")]);
-      MdFormatter.startLineRegex.push(["md-quote", RegExp("^>\\s")]);
+    if (MdFormatter.lineStartRules.length === 0) {
+      MdFormatter.lineStartRules.push(["md-header-1", RegExp("^#{1}\\s")]);
+      MdFormatter.lineStartRules.push(["md-header-2", RegExp("^#{2}\\s")]);
+      MdFormatter.lineStartRules.push(["md-header-3", RegExp("^#{3}\\s")]);
+      MdFormatter.lineStartRules.push(["md-header-4", RegExp("^#{4}\\s")]);
+      MdFormatter.lineStartRules.push(["md-header-5", RegExp("^#{5}\\s")]);
+      MdFormatter.lineStartRules.push(["md-header-6", RegExp("^#{6}\\s")]);
+      MdFormatter.lineStartRules.push(["md-quote", RegExp("^>\\s")]);
+    }
+  }
+
+  /**
+   *
+   */
+  private initInlineRules(): void {
+    if (MdFormatter.inlineRules.length === 0) {
+      MdFormatter.inlineRules.push(["md-bold", "**"]);
+      MdFormatter.inlineRules.push(["md-bold", "__"]);
+      MdFormatter.inlineRules.push(["md-italics", "*"]);
+      MdFormatter.inlineRules.push(["md-italics", "_"]);
+      MdFormatter.inlineRules.push(["md-strikethrough", "--"]);
     }
   }
 
@@ -202,9 +378,9 @@ export class MdFormatter extends Formatter {
       const elementFromNode = mutation.target as HTMLElement;
 
       if (elementFromNode) {
-        const spacesRegex = RegExp("\\s*");
+        const spacesRegex = RegExp("^\\s*$");
         if (spacesRegex.test(elementFromNode.innerText)) {
-          elementFromNode.className = "";
+          this.clearDivFormatting(elementFromNode);
         }
       }
     }
@@ -217,9 +393,9 @@ export class MdFormatter extends Formatter {
   private handleCharacterDataMutation(mutation: MutationRecord): void {
     const div = mutation.target.parentElement;
 
-    if (div) {
-      div.className = "";
-      this.applyFormatting(div);
+    if (div && div.getAttribute("data-active") === "true") {
+      this.clearDivFormatting(div);
+      this.applyDivFormatting(div);
     }
   }
 
@@ -230,7 +406,7 @@ export class MdFormatter extends Formatter {
     for (const child of this.editor.children) {
       if (child instanceof HTMLElement) {
         const div = child as HTMLElement;
-        this.clearFormatting(div);
+        this.clearDivFormatting(div);
       }
     }
   }
@@ -242,17 +418,17 @@ export class MdFormatter extends Formatter {
     for (const child of this.editor.children) {
       if (child instanceof HTMLElement) {
         const div = child as HTMLElement;
-        this.applyFormatting(div);
+        this.applyDivFormatting(div);
       }
     }
   }
 
   /**
-   * Add specific MD formatting to a single element(paragraph)
+   * Add specific MD formatting to a single div(paragraph)
    * @param {HTMLElement} div the element to apply specific formatting
    */
-  private applyFormatting(div: HTMLElement): void {
-    for (const [className, regex] of MdFormatter.startLineRegex) {
+  private applyDivFormatting(div: HTMLElement): void {
+    for (const [className, regex] of MdFormatter.lineStartRules) {
       if (regex.test(div.innerText)) {
         div.className = className;
       }
@@ -263,7 +439,7 @@ export class MdFormatter extends Formatter {
    * Clear MD formatting from a single element(paragraph)
    * @param {HTMLElement} div the element to apply specific formatting
    */
-  private clearFormatting(div: HTMLElement): void {
+  private clearDivFormatting(div: HTMLElement): void {
     div.className = "";
   }
 }
