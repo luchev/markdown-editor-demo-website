@@ -39,6 +39,11 @@ export class MdFormatter extends Formatter {
   private dynamicRender = true;
 
   /**
+   * Flag indicating whether when leaving a paragraph the MD tokens should be hidden
+   */
+  private hideSyntax = true;
+
+  /**
    * The current div which the caret is in
    */
   private caretDiv: HTMLElement | null = null;
@@ -137,14 +142,18 @@ export class MdFormatter extends Formatter {
     if (this.caretDiv !== caretDiv) {
       if (this.caretDiv) {
         this.caretDiv.setAttribute("data-active", "false");
-        this.hideMdTokens(this.caretDiv);
+        if (this.hideSyntax) {
+          this.hideMdTokens(this.caretDiv);
+        }
       }
 
       this.caretDiv = caretDiv;
 
       if (this.caretDiv) {
         this.caretDiv.setAttribute("data-active", "true");
-        this.showMdTokens(this.caretDiv);
+        if (this.hideSyntax) {
+          this.showMdTokens(this.caretDiv);
+        }
       }
     }
   }
@@ -186,7 +195,7 @@ export class MdFormatter extends Formatter {
     for (const [, regex] of MdFormatter.lineStartRules) {
       if (regex.test(div.innerText)) {
         const lineStart = this.getFirstRegexMatch(div.innerText, regex);
-        div.innerHTML = div.innerHTML.replace(lineStart, "");
+        div.innerText = div.innerText.replace(lineStart, "");
 
         const span = document.createElement("span");
         span.style.display = "none";
@@ -218,7 +227,24 @@ export class MdFormatter extends Formatter {
           Dynamic render
         </div>
         <div style='display: flex;'>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" display="none">
+          <svg display="none" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+          </svg>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
+            stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 11 12 14 22 4" />
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+          </svg>
+        </div>
+      </div>
+      `,
+      `
+      <div data-setting="hide-syntax" style='display: flex; flex-direction: row; justify-items: center; justify-content: space-between; margin-top: 20px;'>
+        <div style='display: flex;'>
+          Hide syntax
+        </div>
+        <div style='display: flex;'>
+          <svg display="none" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
           </svg>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"
@@ -241,6 +267,10 @@ export class MdFormatter extends Formatter {
         if (element.getAttribute("data-setting") === "dynamic-render") {
           element.addEventListener("click", (event: MouseEvent) =>
             this.toggleDynamicRender(event)
+          );
+        } else if (element.getAttribute("data-setting") === "hide-syntax") {
+          element.addEventListener("click", (event: MouseEvent) =>
+            this.toggleHideSyntax(event)
           );
         }
       }
@@ -270,6 +300,52 @@ export class MdFormatter extends Formatter {
       this.enableRendering();
     } else {
       this.disableRendering();
+    }
+  }
+
+  /**
+   * Method to handle the click event on the setting Toggle Dynamic Renderer
+   * @param {MouseEvent} event Click event to toggle Dynamic Renderer
+   */
+  private toggleHideSyntax(event: MouseEvent): void {
+    const settingsItem = event.currentTarget as Element;
+    const svgs = settingsItem?.children[1].children;
+
+    for (const svg of svgs) {
+      if (svg.hasAttribute("display")) {
+        svg.removeAttribute("display");
+      } else {
+        svg.setAttribute("display", "none");
+      }
+    }
+
+    this.hideSyntax = !this.hideSyntax;
+    if (this.hideSyntax) {
+      this.enableHideSyntax();
+    } else {
+      this.disableHideSyntax();
+    }
+  }
+
+  /**
+   * Enable hiding syntax, aka MD identifiers like "# " and "** <some-text> **"
+   */
+  private enableHideSyntax(): void {
+    for (const element of this.editor.children) {
+      if (element instanceof HTMLElement) {
+        this.hideMdTokens(element as HTMLElement);
+      }
+    }
+  }
+
+  /**
+   * Disable hiding syntax, aka MD identifiers like "# " and "** <some-text> **"
+   */
+  private disableHideSyntax(): void {
+    for (const element of this.editor.children) {
+      if (element instanceof HTMLElement) {
+        this.showMdTokens(element as HTMLElement);
+      }
     }
   }
 
@@ -392,8 +468,7 @@ export class MdFormatter extends Formatter {
    */
   private handleCharacterDataMutation(mutation: MutationRecord): void {
     const div = mutation.target.parentElement;
-
-    if (div && div.getAttribute("data-active") === "true") {
+    if (div && this.dynamicRender) {
       this.clearDivFormatting(div);
       this.applyDivFormatting(div);
     }
