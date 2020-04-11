@@ -4,7 +4,7 @@ import {
   WidthProperty,
   HeightProperty,
   BoxShadowProperty,
-} from "csstype";
+} from 'csstype';
 
 /**
  * Theme for the editor as a whole
@@ -14,5 +14,5 @@ export interface EditorTheme {
   color?: ColorProperty;
   width?: WidthProperty<string>;
   height?: HeightProperty<string>;
-  "box-shadow"?: BoxShadowProperty;
+  'box-shadow'?: BoxShadowProperty;
 }

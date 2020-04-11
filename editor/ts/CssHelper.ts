@@ -1,4 +1,4 @@
-import { PropertiesHyphen } from "csstype";
+import { PropertiesHyphen } from 'csstype';
 
 /**
  * Add methods to work with CSS like injecting classes and
@@ -22,10 +22,10 @@ export class CssHelper {
    * style tag has been injected into the HTML
    */
   private constructor() {
-    CssHelper.styleElement = document.createElement("style");
-    CssHelper.styleElement.type = "text/css";
+    CssHelper.styleElement = document.createElement('style');
+    CssHelper.styleElement.type = 'text/css';
     document
-      .getElementsByTagName("head")[0]
+      .getElementsByTagName('head')[0]
       .appendChild(CssHelper.styleElement);
   }
 
@@ -45,9 +45,9 @@ export class CssHelper {
    * @return {string}
    */
   static stringifyCSSProperties(property: PropertiesHyphen): string {
-    let cssString = "";
+    let cssString = '';
     Object.entries(property).forEach(([key, value]: [string, string]) => {
-      if (value !== "") {
+      if (value !== '') {
         cssString += `${key}: ${value}; `;
       }
     });

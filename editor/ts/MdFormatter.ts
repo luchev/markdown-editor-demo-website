@@ -1,5 +1,5 @@
-import { Formatter } from "./Formatter";
-import { DOMHelper } from "./DOMHelper";
+import { Formatter } from './Formatter';
+import { DOMHelper } from './DOMHelper';
 
 /**
  * Markdown formatter which is based on the generic Formatter class
@@ -31,7 +31,7 @@ export class MdFormatter extends Formatter {
   /**
    * Hook to the editor div
    */
-  private editor: HTMLElement = document.createElement("invalid");
+  private editor: HTMLElement = document.createElement('invalid');
 
   /**
    * Flag indicating whether formatting should be applied when text is inputted
@@ -84,15 +84,15 @@ export class MdFormatter extends Formatter {
    * Initialize keyboard event listeners
    */
   private initKeyboardEventListeners(): void {
-    this.editor.addEventListener("keydown", () => this.handleKeyDown());
-    this.editor.addEventListener("keyup", () => this.handleKeyUp());
+    this.editor.addEventListener('keydown', () => this.handleKeyDown());
+    this.editor.addEventListener('keyup', () => this.handleKeyUp());
   }
 
   /**
    * Initialize keyboard event listeners
    */
   private initMouseEventListeners(): void {
-    this.editor.addEventListener("click", () => this.handleClick());
+    this.editor.addEventListener('click', () => this.handleClick());
   }
 
   /**
@@ -141,7 +141,7 @@ export class MdFormatter extends Formatter {
     const caretDiv = this.getCaretDiv();
     if (this.caretDiv !== caretDiv) {
       if (this.caretDiv) {
-        this.caretDiv.setAttribute("data-active", "false");
+        this.caretDiv.setAttribute('data-active', 'false');
         if (this.hideSyntax) {
           this.hideMdTokens(this.caretDiv);
         }
@@ -150,7 +150,7 @@ export class MdFormatter extends Formatter {
       this.caretDiv = caretDiv;
 
       if (this.caretDiv) {
-        this.caretDiv.setAttribute("data-active", "true");
+        this.caretDiv.setAttribute('data-active', 'true');
         if (this.hideSyntax) {
           this.showMdTokens(this.caretDiv);
         }
@@ -168,7 +168,7 @@ export class MdFormatter extends Formatter {
     if (matches && matches.length === 1) {
       return matches[0];
     }
-    return "";
+    return '';
   }
 
   /**
@@ -176,9 +176,9 @@ export class MdFormatter extends Formatter {
    */
   private showMdTokens(div: HTMLElement): void {
     for (const child of div.children) {
-      if (child instanceof HTMLElement && child.tagName === "SPAN") {
+      if (child instanceof HTMLElement && child.tagName === 'SPAN') {
         const span = child as HTMLElement;
-        if (span.style.display === "none") {
+        if (span.style.display === 'none') {
           const spanText = span.innerText;
           span.replaceWith(spanText);
         }
@@ -195,10 +195,10 @@ export class MdFormatter extends Formatter {
     for (const [, regex] of MdFormatter.lineStartRules) {
       if (regex.test(div.innerText)) {
         const lineStart = this.getFirstRegexMatch(div.innerText, regex);
-        div.innerText = div.innerText.replace(lineStart, "");
+        div.innerText = div.innerText.replace(lineStart, '');
 
-        const span = document.createElement("span");
-        span.style.display = "none";
+        const span = document.createElement('span');
+        span.style.display = 'none';
         span.innerText = lineStart;
 
         div.prepend(span);
@@ -263,13 +263,13 @@ export class MdFormatter extends Formatter {
 
     // TODO convert the following foreach to event delegation
     settingsElements.forEach((element) => {
-      if (element.hasAttribute("data-setting")) {
-        if (element.getAttribute("data-setting") === "dynamic-render") {
-          element.addEventListener("click", (event: MouseEvent) =>
+      if (element.hasAttribute('data-setting')) {
+        if (element.getAttribute('data-setting') === 'dynamic-render') {
+          element.addEventListener('click', (event: MouseEvent) =>
             this.toggleDynamicRender(event)
           );
-        } else if (element.getAttribute("data-setting") === "hide-syntax") {
-          element.addEventListener("click", (event: MouseEvent) =>
+        } else if (element.getAttribute('data-setting') === 'hide-syntax') {
+          element.addEventListener('click', (event: MouseEvent) =>
             this.toggleHideSyntax(event)
           );
         }
@@ -288,10 +288,10 @@ export class MdFormatter extends Formatter {
     const svgs = settingsItem?.children[1].children;
 
     for (const svg of svgs) {
-      if (svg.hasAttribute("display")) {
-        svg.removeAttribute("display");
+      if (svg.hasAttribute('display')) {
+        svg.removeAttribute('display');
       } else {
-        svg.setAttribute("display", "none");
+        svg.setAttribute('display', 'none');
       }
     }
 
@@ -312,10 +312,10 @@ export class MdFormatter extends Formatter {
     const svgs = settingsItem?.children[1].children;
 
     for (const svg of svgs) {
-      if (svg.hasAttribute("display")) {
-        svg.removeAttribute("display");
+      if (svg.hasAttribute('display')) {
+        svg.removeAttribute('display');
       } else {
-        svg.setAttribute("display", "none");
+        svg.setAttribute('display', 'none');
       }
     }
 
@@ -356,13 +356,13 @@ export class MdFormatter extends Formatter {
    */
   private initRegex(): void {
     if (MdFormatter.lineStartRules.length === 0) {
-      MdFormatter.lineStartRules.push(["md-header-1", RegExp("^#{1}\\s")]);
-      MdFormatter.lineStartRules.push(["md-header-2", RegExp("^#{2}\\s")]);
-      MdFormatter.lineStartRules.push(["md-header-3", RegExp("^#{3}\\s")]);
-      MdFormatter.lineStartRules.push(["md-header-4", RegExp("^#{4}\\s")]);
-      MdFormatter.lineStartRules.push(["md-header-5", RegExp("^#{5}\\s")]);
-      MdFormatter.lineStartRules.push(["md-header-6", RegExp("^#{6}\\s")]);
-      MdFormatter.lineStartRules.push(["md-quote", RegExp("^>\\s")]);
+      MdFormatter.lineStartRules.push(['md-header-1', RegExp('^#{1}\\s')]);
+      MdFormatter.lineStartRules.push(['md-header-2', RegExp('^#{2}\\s')]);
+      MdFormatter.lineStartRules.push(['md-header-3', RegExp('^#{3}\\s')]);
+      MdFormatter.lineStartRules.push(['md-header-4', RegExp('^#{4}\\s')]);
+      MdFormatter.lineStartRules.push(['md-header-5', RegExp('^#{5}\\s')]);
+      MdFormatter.lineStartRules.push(['md-header-6', RegExp('^#{6}\\s')]);
+      MdFormatter.lineStartRules.push(['md-quote', RegExp('^>\\s')]);
     }
   }
 
@@ -371,11 +371,11 @@ export class MdFormatter extends Formatter {
    */
   private initInlineRules(): void {
     if (MdFormatter.inlineRules.length === 0) {
-      MdFormatter.inlineRules.push(["md-bold", "**"]);
-      MdFormatter.inlineRules.push(["md-bold", "__"]);
-      MdFormatter.inlineRules.push(["md-italics", "*"]);
-      MdFormatter.inlineRules.push(["md-italics", "_"]);
-      MdFormatter.inlineRules.push(["md-strikethrough", "--"]);
+      MdFormatter.inlineRules.push(['md-bold', '**']);
+      MdFormatter.inlineRules.push(['md-bold', '__']);
+      MdFormatter.inlineRules.push(['md-italics', '*']);
+      MdFormatter.inlineRules.push(['md-italics', '_']);
+      MdFormatter.inlineRules.push(['md-strikethrough', '--']);
     }
   }
 
@@ -396,11 +396,11 @@ export class MdFormatter extends Formatter {
    * @param {MutationRecord} mutation Mutation to parse
    */
   private handleMutation(mutation: MutationRecord): void {
-    if (mutation.type === "childList") {
+    if (mutation.type === 'childList') {
       this.handleChildListMutation(mutation);
     }
 
-    if (mutation.type === "characterData") {
+    if (mutation.type === 'characterData') {
       this.handleCharacterDataMutation(mutation);
     }
   }
@@ -417,10 +417,10 @@ export class MdFormatter extends Formatter {
       // The first text written will not be in a separate div, so create a div for it
       // and put the text inside
       if (
-        addedNode.nodeName === "#text" &&
+        addedNode.nodeName === '#text' &&
         addedNode.parentElement === this.editor
       ) {
-        const newDiv = document.createElement("div");
+        const newDiv = document.createElement('div');
         this.editor.insertBefore(newDiv, addedNode.nextSibling);
         newDiv.appendChild(addedNode);
 
@@ -436,7 +436,7 @@ export class MdFormatter extends Formatter {
       }
 
       // If added node is a div, clear all classes
-      if (addedNode.nodeName === "DIV" && mutation.target !== this.editor) {
+      if (addedNode.nodeName === 'DIV' && mutation.target !== this.editor) {
         if (addedNode.nodeType === Node.ELEMENT_NODE) {
           const elementFromNode: HTMLElement = addedNode as HTMLElement;
           while (elementFromNode.hasAttributes()) {
@@ -454,7 +454,7 @@ export class MdFormatter extends Formatter {
       const elementFromNode = mutation.target as HTMLElement;
 
       if (elementFromNode) {
-        const spacesRegex = RegExp("^\\s*$");
+        const spacesRegex = RegExp('^\\s*$');
         if (spacesRegex.test(elementFromNode.innerText)) {
           this.clearDivFormatting(elementFromNode);
         }
@@ -515,6 +515,6 @@ export class MdFormatter extends Formatter {
    * @param {HTMLElement} div the element to apply specific formatting
    */
   private clearDivFormatting(div: HTMLElement): void {
-    div.className = "";
+    div.className = '';
   }
 }

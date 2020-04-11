@@ -8,7 +8,7 @@ export class DOMHelper {
    * @return {HTMLElement}
    */
   static htmlElementFromString(html: string): HTMLElement {
-    const creationHelperElement = document.createElement("div");
+    const creationHelperElement = document.createElement('div');
     creationHelperElement.innerHTML = html.trim();
     if (
       creationHelperElement.firstChild &&
@@ -16,6 +16,6 @@ export class DOMHelper {
     ) {
       return creationHelperElement.firstChild as HTMLElement;
     }
-    throw new Error("Failed to create element from html: " + html);
+    throw new Error('Failed to create element from html: ' + html);
   }
 }

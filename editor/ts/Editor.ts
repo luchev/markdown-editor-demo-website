@@ -1,8 +1,8 @@
-import { Theme } from "./Theme";
-import { PropertiesHyphen } from "csstype";
-import { CssHelper } from "./CssHelper";
-import { Formatter } from "./Formatter";
-import { DOMHelper } from "./DOMHelper";
+import { Theme } from './Theme';
+import { PropertiesHyphen } from 'csstype';
+import { CssHelper } from './CssHelper';
+import { Formatter } from './Formatter';
+import { DOMHelper } from './DOMHelper';
 
 /**
  * Abstraction of the editor as a collection of container, formatter, settings and themes
@@ -11,17 +11,17 @@ export class Editor {
   /**
    * The container for the menu and the editor
    */
-  private container: HTMLElement = document.createElement("div");
+  private container: HTMLElement = document.createElement('div');
 
   /**
    * The actual editor which holds the text content
    */
-  private editor: HTMLElement = document.createElement("div");
+  private editor: HTMLElement = document.createElement('div');
 
   /**
    * The menu next to the editor
    */
-  private menu: HTMLElement = document.createElement("div");
+  private menu: HTMLElement = document.createElement('div');
 
   /**
    * The Id of the original element which is used as a prefix for the Ids of the container, menu and editor
@@ -66,7 +66,7 @@ export class Editor {
       Object.entries(this.theme.scrollbarTheme).forEach(
         ([identifier, properties]: [string, PropertiesHyphen]) => {
           CssHelper.injectCss(
-            "#" + this.getEditorId() + "::" + identifier,
+            '#' + this.getEditorId() + '::' + identifier,
             properties
           );
         }
@@ -89,13 +89,13 @@ export class Editor {
   private createContainer(futureContainerId: string): void {
     const futureContainer = document.getElementById(futureContainerId);
     if (!futureContainer) {
-      throw new Error("Cannot find element with id " + futureContainerId);
+      throw new Error('Cannot find element with id ' + futureContainerId);
     }
 
     const futureContainerParent = futureContainer.parentElement;
     if (!futureContainerParent) {
       throw new Error(
-        "Cannot find parent of element with id " + futureContainerId
+        'Cannot find parent of element with id ' + futureContainerId
       );
     }
 
@@ -131,7 +131,7 @@ export class Editor {
         </div>`);
 
     this.menu.appendChild(settingsSvg);
-    settingsSvg.addEventListener("click", (event) => {
+    settingsSvg.addEventListener('click', (event) => {
       this.settingsClick(event, this.menu);
     });
   }
@@ -140,10 +140,10 @@ export class Editor {
    * Create the settings elements in the HTML
    */
   private createMenuSettingsItems(): void {
-    const settingsContainer = document.createElement("div");
+    const settingsContainer = document.createElement('div');
     this.menu.appendChild(settingsContainer);
-    settingsContainer.style.display = "none";
-    settingsContainer.style.flexDirection = "column";
+    settingsContainer.style.display = 'none';
+    settingsContainer.style.flexDirection = 'column';
     this.formatter
       .getSettings()
       .forEach((element) => settingsContainer.appendChild(element));
@@ -155,7 +155,7 @@ export class Editor {
   private createEditor(): void {
     this.container.appendChild(this.editor);
     this.editor.id = this.getEditorId();
-    this.editor.contentEditable = "true";
+    this.editor.contentEditable = 'true';
   }
 
   /**
@@ -179,20 +179,20 @@ export class Editor {
       // Switch arrow direction
       const svgs = target.children;
       for (const svg of svgs) {
-        if (svg.hasAttribute("display")) {
-          svg.removeAttribute("display");
+        if (svg.hasAttribute('display')) {
+          svg.removeAttribute('display');
         } else {
-          svg.setAttribute("display", "none");
+          svg.setAttribute('display', 'none');
         }
       }
 
       // Resize menu
-      if (target.parentElement.style.width === "") {
-        target.parentElement.style.width = "250px";
-        (menu.children[1] as HTMLElement).style.display = "flex";
+      if (target.parentElement.style.width === '') {
+        target.parentElement.style.width = '250px';
+        (menu.children[1] as HTMLElement).style.display = 'flex';
       } else {
-        target.parentElement.style.width = "";
-        (menu.children[1] as HTMLElement).style.display = "none";
+        target.parentElement.style.width = '';
+        (menu.children[1] as HTMLElement).style.display = 'none';
       }
     }
   }
@@ -255,11 +255,11 @@ export class Editor {
    */
   private getContainerBaseCssProperties(): PropertiesHyphen {
     return {
-      cursor: "default",
-      display: "flex",
-      "flex-direction": "row",
-      resize: "both",
-      overflow: "auto",
+      cursor: 'default',
+      display: 'flex',
+      'flex-direction': 'row',
+      resize: 'both',
+      overflow: 'auto',
     };
   }
 
@@ -269,11 +269,11 @@ export class Editor {
    */
   private getMenuBaseCssProperties(): PropertiesHyphen {
     return {
-      "border-right": "1px solid rgb(83, 79, 86)",
-      margin: "20px 0px 20px 0px",
-      padding: "15px 20px 15px 20px",
-      display: "flex",
-      "flex-direction": "column",
+      'border-right': '1px solid rgb(83, 79, 86)',
+      margin: '20px 0px 20px 0px',
+      padding: '15px 20px 15px 20px',
+      display: 'flex',
+      'flex-direction': 'column',
     };
   }
 
@@ -283,12 +283,12 @@ export class Editor {
    */
   private getEditorBaseCssProperties(): PropertiesHyphen {
     return {
-      flex: "1",
-      outline: "none",
-      overflow: "auto",
-      "scrollbar-color": "red",
-      padding: "20px 30px 20px 30px",
-      margin: "10px 10px 10px 10px",
+      flex: '1',
+      outline: 'none',
+      overflow: 'auto',
+      'scrollbar-color': 'red',
+      padding: '20px 30px 20px 30px',
+      margin: '10px 10px 10px 10px',
     };
   }
 
@@ -296,41 +296,41 @@ export class Editor {
    * @return {string} Main container Id prepended with #
    */
   private getContainerIdentifier(): string {
-    return "#" + this.getContainerId();
+    return '#' + this.getContainerId();
   }
 
   /**
    * @return {string} Menu Id prepended with #
    */
   private getMenuIdentifier(): string {
-    return "#" + this.getMenuId();
+    return '#' + this.getMenuId();
   }
 
   /**
    * @return {string} Editor Id prepended with #
    */
   private getEditorIdentifier(): string {
-    return "#" + this.getEditorId();
+    return '#' + this.getEditorId();
   }
 
   /**
    * @return {string} Id of the whole container
    */
   private getContainerId(): string {
-    return this.idPrefix + "-container";
+    return this.idPrefix + '-container';
   }
 
   /**
    * @return {string} Id of the menu window
    */
   private getMenuId(): string {
-    return this.idPrefix + "-menu";
+    return this.idPrefix + '-menu';
   }
 
   /**
    * @return {string} Id of the editor window
    */
   private getEditorId(): string {
-    return this.idPrefix + "-editor";
+    return this.idPrefix + '-editor';
   }
 }
