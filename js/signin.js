@@ -1,4 +1,4 @@
-window.onload = function () {
+(function() {
     // Show signin window
     let signinToggle = document.getElementById('signin-toggle');
     let signinPopup = document.getElementById('signin-popup');
@@ -57,7 +57,7 @@ window.onload = function () {
     confirmPassword.addEventListener('input', function () {
         confirmPassword.setCustomValidity('');
     });
-};
+})();
 
 /**
  * Verify inputted password validity

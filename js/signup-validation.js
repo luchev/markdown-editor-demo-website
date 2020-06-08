@@ -4,7 +4,6 @@
  * @param {password} password 
  */
 function isPasswordValid(password) {
-    console.log(password.value.length);
     return password.value.length > 7;
 }
 
@@ -13,7 +12,7 @@ function isPasswordValid(password) {
  * @param {password} password 
  * @param {password} passwordConfirm 
  */
-function isConformPasswordValid(password, passwordConfirm) {
+function isConfirmPasswordValid(password, passwordConfirm) {
     return password.value === passwordConfirm.value;
 }
 
@@ -34,7 +33,6 @@ password.addEventListener('input', function (event) {
  * The confirm password input field
  */
 let passwordConfirm = document.getElementById('password_confirm');
-
 
 /**
  * Reset the validity message each time the user makes change to the contents
@@ -60,7 +58,7 @@ form.addEventListener('submit', function (event) {
         return false;
     }
 
-    if (!isConformPasswordValid(password, passwordConfirm)) {
+    if (!isConfirmPasswordValid(password, passwordConfirm)) {
         passwordConfirm.setCustomValidity('Passwords do not match');
         event.preventDefault();
         return false;
