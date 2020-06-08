@@ -56,14 +56,72 @@ main {
     flex-direction: row;
 }
 
-#project-container {
+#files-container {
     display: flex;
 }
 
-#project-index {
+#files {
     display: flex;
+    flex-direction: column;
     width: 300px;
     background: var(--bg-tertiary);
+}
+
+.file-entry {
+    display: flex;
+    flex-direction: row;
+    flex-basis: 0;
+    padding: 2px;
+    color: var(--text-inactive);
+    word-break: break-all; word-wrap: break-word;
+    user-select: none;
+}
+
+.file-entry.selected {
+    font-weight: bold;
+    color: var(--text-normal);
+}
+
+.file-entry.selected::before {
+    content: ""
+}
+
+.file-name {
+    display: flex;
+    cursor: pointer;
+    width: 210px;
+}
+
+.file-entry:hover > .file-actions {
+    display: flex;
+}
+
+.file-actions {
+    display: none;
+    position: absolute;
+    margin-left: 210px;
+    flex-direction: row;
+    color: var(--text-normal);
+}
+
+.file-actions > * {
+    margin-left: 3px;
+    margin-right: 3px;
+    cursor: pointer;
+}
+
+.file-rename {
+    width: 200px;
+    background: var(--bg-accent);
+    outline: none;
+    border: none;
+    font-size: inherit;
+    font-family: inherit;
+    color: var(--text-normal);
+}
+
+.new-file-input {
+    color: white !important;
 }
 
 #editor-container {
