@@ -2,7 +2,7 @@
 require_once 'php/lib/utils.php';
 
 // If a user is already logged in, redirect
-if (isset($_SESSION['loggedin'])) {
+if (isUserLoggedIn()) {
     redirect_back();
 }
 
@@ -13,7 +13,9 @@ if (!isset($_POST['email']) || !isset($_POST['password'])) {
 
 $email = $_POST['email'];
 // Validate email
+
 $email = format_email($email);
+
 if (!is_email_valid($email)) {
     /**
      * TODO add error message
