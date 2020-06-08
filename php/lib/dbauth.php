@@ -4,9 +4,9 @@
  * Authentication variables for connecting to the DB
  */
 class DBAuth {
-	public $host = 'host = localhost';
-	public $port = 'port = 5432';
-	public $dbname = 'dbname = md_db';
-	public $user = 'user = md_user';
-	public $password = 'password = PASSWORD';
+	public $host = 'localhost';
+	public $port = '3306';
+	public $dbname = 'md_db';
+	public $user = 'md_user';
+	public $password = 'PASSWORD';
 }
