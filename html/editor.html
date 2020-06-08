@@ -1,11 +1,24 @@
 <main>
-    <div id="project-container">
-        <div id="project-index"></div>
+    <div id="files-container">
+        <div id="files">
+            <button id="create-file">Нов файл</button>
+            <button id="save-file">Запамети</button>
+            <div id="file-list">
+            </div>
+        </div>
     </div>
     <div id="editor-container">
         <div id="editor" contenteditable="true"></div>
     </div>
 </main>
+
+<script src="../js/list-files.js" defer></script>
+<script src="../js/create-file.js" defer></script>
+<script src="../js/rename-file.js" defer></script>
+<script src="../js/download-file.js" defer></script>
+<script src="../js/delete-file.js" defer></script>
+<script src="../js/load-file.js" defer></script>
+<script src="../js/save-file.js" defer></script>
 
 <script>
     let editor = document.getElementById('editor');
