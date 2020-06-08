@@ -7,7 +7,11 @@ function redirect_back() {
     } else if (isset($_SERVER['HTTP_REFERER'])) {
         $previousPage = $_SERVER['HTTP_REFERER'];
     } else {
-        $previousPage = header("location: /p/home");
+        $previousPage = "/p/home";
+    }
+
+    if (ends_with($previousPage, $_SERVER['REQUEST_URI'])) {
+        $previousPage = "/p/home";
     }
 
     header("location: $previousPage");
@@ -154,4 +158,34 @@ function error(int $code, string $message) {
  */
 function parse_url_params(string $url) {
     return explode("/", $url);
+}
+
+/**
+ * End a query to the server api priting the response and setting the http code
+ */
+function answerQuery($output) {
+    if (isset($output['errors'])) {
+        http_response_code(400);
+        $output['success'] = FALSE;
+    } else {
+        http_response_code(200);
+        $output['success'] = TRUE;
+    }
+    print(json_encode($output));
+    die();
+}
+
+/**
+ * Check if a user is logged in (session is started)
+ */
+function isUserLoggedIn() {
+    return isset($_SESSION['loggedin']);
+}
+
+function getUid() {
+    if (isset($_SESSION['uid'])) {
+        return $_SESSION['uid'];
+    } else {
+        return -1;
+    }
 }
