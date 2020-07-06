@@ -67,6 +67,23 @@ main {
     background: var(--bg-tertiary);
 }
 
+#global-file-actions {
+    display: flex;
+    flex-direction: row;
+}
+
+.global-file-action {
+    display: flex;
+    padding: 3px;
+    cursor: pointer;
+}
+
+.file-container-separator {
+    height: 2px;
+    border: none;
+    background-color: var(--bg-accent);
+}
+
 .file-entry {
     display: flex;
     flex-direction: row;

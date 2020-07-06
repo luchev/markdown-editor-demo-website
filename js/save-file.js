@@ -1,8 +1,16 @@
 document.getElementById( 'save-file' ).addEventListener( 'click', () => {
+    saveCurrentFile();
+} );
+
+function saveCurrentFile() {
     let id = document.getElementById( 'editor-container' ).dataset.fileId;
+    if ( !id ) {
+        iziToast.error( {message: 'No file selected to save'} );
+        return;
+    }
     fetch( 'http://localhost/q/save-file/' + id, {
         method: 'POST',
-        body: document.getElementById( 'editor-container' ).innerText
+        body: editor.getContent(),
     } ).then( ( result ) => result.json() ).then( ( data ) => {
         if ( data.success ) {
             iziToast.success( {message: 'File saved'} );
@@ -12,4 +20,4 @@ document.getElementById( 'save-file' ).addEventListener( 'click', () => {
     } ).catch( () => {
         iziToast.error( {message: 'Failed to save file'} );
     } );
-} );
+}

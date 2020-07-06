@@ -52,6 +52,11 @@ function generateFileNameElement( name ) {
   nameDiv.innerText = name;
   nameDiv.className = 'file-name';
   nameDiv.addEventListener( 'click', ( fileNameDiv ) => {
+    if ( generateFileNameElement.oneFileLoaded === undefined) {
+      generateFileNameElement.oneFileLoaded = 1;
+    } else {
+      saveCurrentFile();
+    }
     loadFile( fileNameDiv.currentTarget.parentNode );
   } );
   return nameDiv;

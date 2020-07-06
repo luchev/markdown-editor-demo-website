@@ -1,79 +1,56 @@
 <main>
     <div id="files-container">
         <div id="files">
-            <button id="create-file">Нов файл</button>
-            <button id="save-file">Запамети</button>
+            <div id="global-file-actions">
+                <div id="create-file" class="global-file-action">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                        <line x1="12" y1="18" x2="12" y2="12" />
+                        <line x1="9" y1="15" x2="15" y2="15" />
+                    </svg>
+                </div>
+                <div id="save-file" class="global-file-action">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                        <polyline points="17 21 17 13 7 13 7 21" />
+                        <polyline points="7 3 7 8 15 8" />
+                    </svg>
+                </div>
+                <div id="download-current-file" class="global-file-action">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                </div>
+            </div>
+            <hr class="file-container-separator">
             <div id="file-list">
             </div>
         </div>
     </div>
     <div id="editor-container">
-        <div id="editor" contenteditable="true"></div>
+        <div id="editor"></div>
     </div>
 </main>
+<script>
+    var editor = undefined;
+</script>
 
 <script src="../js/list-files.js" defer></script>
 <script src="../js/create-file.js" defer></script>
+<script src="../js/save-file.js" defer></script>
+<script src="../js/download-current-file.js" defer></script>
 <script src="../js/rename-file.js" defer></script>
 <script src="../js/download-file.js" defer></script>
 <script src="../js/delete-file.js" defer></script>
 <script src="../js/load-file.js" defer></script>
-<script src="../js/save-file.js" defer></script>
+<script src="../js/editor.js"></script>
 
 <script>
-    let editor = document.getElementById('editor');
-    let observer = new MutationObserver(function (mutations) {
-        mutations.forEach(function (mutation) {
-            // Add first div if the editor is empty and this is the first addedd #text
-            if (mutation.addedNodes.length > 0) {
-                let addedNode = mutation.addedNodes[0];
-                if (addedNode.nodeName.toLowerCase() != 'div' && addedNode.parentElement == editor) {
-                    let newDiv = document.createElement('div');
-                    newDiv.innerText = addedNode.textContent;
-                    editor.replaceChild(newDiv, addedNode);
-
-                    // Move cursor to end of line
-                    let range = document.createRange();
-                    let sel = window.getSelection();
-                    range.setStart(editor.childNodes[0], newDiv.innerHTML.length);
-                    range.collapse(true);
-                    sel.removeAllRanges();
-                    sel.addRange(range);
-                }
-            }
-
-            // MD formatting
-            if (mutation.type == 'characterData') {
-                let parent = mutation.target.parentElement;
-                if (parent == null) {
-                    parent = editor.firstChild;
-                }
-
-                let header1Regex = RegExp('#\\s');
-                let header2Regex = RegExp('##\\s');
-
-                if (header2Regex.test(parent.innerText)) {
-                    parent.className = 'header-2';
-                }
-                else if (header1Regex.test(parent.innerText)) {
-                    parent.className = 'header-1';
-                } else {
-                    parent.className = '';
-                }
-            }
-        });
-    });
-
-    let observerConfig = {
-        childList: true,
-        subtree: true, // observe also grandchildren
-        characterData: true // observe typing
-        // attributes: true, 
-    }
-    observer.observe(editor, observerConfig);
-
-    window.addEventListener('load', function () {
-        // observer.observe(editor, observerConfig);
-    });
-
+    editor = new Editor( 'editor', new MdFormatter(), customTheme );
 </script>

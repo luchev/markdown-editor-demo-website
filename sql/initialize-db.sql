@@ -14,7 +14,7 @@ CREATE TABLE users(
     id SERIAL PRIMARY KEY,
     email citext UNIQUE,
     password VARCHAR(255),
-    nickname VARCHAR(40) UNIQUE,
+    nickname VARCHAR(40) UNIQUE
 );
 
 CREATE TABLE loggedin(

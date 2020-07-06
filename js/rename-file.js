@@ -59,12 +59,13 @@ function renameFile( inputNode ) {
       let fileNameDiv = generateFileNameElement( fileName );
       inputNode.parentNode.replaceChild( fileNameDiv, inputNode );
       iziToast.success( {message: 'File renamed'} );
+      console.log(123);
     } else {
       restoreFileName( inputNode );
       iziToast.error( {message: 'File rename failed'} );
     }
   } ).catch( () => {
     restoreFileName( inputNode );
-    iziToast.error( {message: 'File rename failed'} );
+    // iziToast.error( {message: 'File rename failed'} );
   } );
 }
