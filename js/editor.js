@@ -931,8 +931,8 @@ darkMDFormatterTheme.rules[MdCss.global] = {
 };
 darkMDFormatterTheme.rules[MdCss.paragraph] = {
     'font-size': '1em',
-    'margin-top': '5px',
-    'margin-bottom': '5px',
+    'margin-top': '10px',
+    'margin-bottom': '10px',
 };
 darkMDFormatterTheme.rules[MdCss.header1] = {
     'margin': '24px 0 16px 0',
