@@ -1,4 +1,10 @@
 RewriteEngine On
 
-RewriteRule ^p/(.*)$ /index.php?p=$1
-RewriteRule ^q/(.*)$ /index.php?q=$1
+# Set the path to the root of the markdown editor website
+# example paths:
+# [E=path:/] -> the website content is under /
+# [E=path:/sub-dir/] -> the website content is under /sub-dir/
+RewriteRule ".*" "-" [E=path:/]
+
+RewriteRule ^p/(.*)$ %{ENV:path}index.php?p=$1
+RewriteRule ^q/(.*)$ ${ENV:path}index.php?q=$1
